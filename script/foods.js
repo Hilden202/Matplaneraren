@@ -1,22 +1,38 @@
-/* const url = "https://dataportal.livsmedelsverket.se/livsmedel/livsmedel/sok?namn=banan";
+/* const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/";
+
 
 const nutritionOutput = document.getElementById("nutritionOutput");
+let foodData = [];
 
-fetch(url, {
-    headers: {
-        "Accept": "application/json"
+fetch(url)
+.then(function (response) { return response.json() })
+.then(function (foodData) {
+    if (foodData.livsmedel && Array.isArray(foodData.livsmedel)) {
+        console.log(foodData.livsmedel[0]);
+        foodData = foodData.livsmedel.map(food => ({
+            id: food.id,
+            namn: food.namn,
+            livsmedelsgruppNamn: food.livsmedelsgruppNamn,
+            energiKcal: food.energiKcal,
+            kolhydrater: food.kolhydrater,
+            fett: food.fett,
+            protein: food.protein
+        }));
+        console.log(foodData);
+        renderFoodList(foodData);
+    } else {
+        console.error("Oväntad API-svarstruktur:", foodData);
     }
 })
-.then(function (response) { return response.json() })
-.then(function (livsmedel) {
-    console.log(livsmedel); // kolla vad du får
-    // här kan du sedan loopa och rendera saker
-})
 .catch(error => {
-    console.error("Fel vid hämtning:", error);
-});
- */
+    console.error("Fel vid hämtning av data:", error);
+    alert("Ett fel inträffade vid hämtning av data. Försök igen senare.");
+}); */
 
+////////////////////////////////////////////////////////////////////////////////////
+
+
+const nutritionOutput = document.getElementById("nutritionOutput"); 
 const foodData = [
     {
         id: 1232,
@@ -39,7 +55,6 @@ const foodData = [
 ];
 
 /////////////////////////////////////////////////////////////////////////////////
-const nutritionOutput = document.getElementById("nutritionOutput"); 
 const searchInput = document.getElementById("foodInput");
 const dropdown = document.getElementById("dropdown");
 const selectedFoodsList = document.getElementById("selectedFoodsList");
@@ -55,23 +70,23 @@ searchInput.addEventListener("input", function () {
 function renderFoodList(data) {
     nutritionOutput.innerHTML = ""; // Clear previous results
 
-    data.forEach(item => {
+    data.forEach(food => {
         const div = document.createElement("div");
         div.className = "food-card";
 
         // Build HTML for each food item
         div.innerHTML = `
-            <h3>` + item.namn + `</h3>
-            <p><strong>Grupp:</strong> ` + item.livsmedelsgruppNamn + `</p>
-            <p><strong>Energi:</strong> ` + item.energiKcal + ` kcal</p>
-            <p><strong>Kolhydrater:</strong> ` + item.kolhydrater + ` g</p>
-            <p><strong>Fett:</strong> ` + item.fett + ` g</p>
-            <p><strong>Protein:</strong> ` + item.protein + ` g</p>
+            <h3>` + food.namn + `</h3>
+            <p><strong>Grupp:</strong> ` + food.livsmedelsgruppNamn + `</p>
+            <p><strong>Energi:</strong> ` + food.energiKcal + ` kcal</p>
+            <p><strong>Kolhydrater:</strong> ` + food.kolhydrater + ` g</p>
+            <p><strong>Fett:</strong> ` + food.fett + ` g</p>
+            <p><strong>Protein:</strong> ` + food.protein + ` g</p>
             
-            <label for="quantity` + item.id + `">Antal:</label>
-            <input type="number" id="quantity` + item.id + `" value="1" min="1">
+            <label for="quantity` + food.id + `">Antal:</label>
+            <input type="number" id="quantity` + food.id + `" value="1" min="1">
             
-            <button class="add-button" data-id="` + item.id + `" data-name="` + item.namn + `" data-energy="` + item.energiKcal + `" data-carbs="` + item.kolhydrater + `" data-fat="` + item.fett + `" data-protein="` + item.protein + `">Lägg till</button>
+            <button class="add-button" data-id="` + food.id + `" data-name="` + food.namn + `" data-energy="` + food.energiKcal + `" data-carbs="` + food.kolhydrater + `" data-fat="` + food.fett + `" data-protein="` + food.protein + `">Lägg till</button>
         `;
         nutritionOutput.appendChild(div);
     });
