@@ -17,7 +17,7 @@ fetch(url, {
 });
  */
 
-const mockData = [
+const foodData = [
     {
         id: 1232,
         namn: "Banan",
@@ -39,17 +39,26 @@ const mockData = [
 ];
 
 /////////////////////////////////////////////////////////////////////////////////
-const nutritionOutput = document.getElementById("nutritionOutput");
+const nutritionOutput = document.getElementById("nutritionOutput"); 
+const searchInput = document.getElementById("foodInput");
+const dropdown = document.getElementById("dropdown");
 const selectedFoodsList = document.getElementById("selectedFoodsList");
-const selectedFoods = {};
+
+
+searchInput.addEventListener("input", function () {
+    const searchTerm = searchInput.value.toLowerCase();
+    const filteredData = foodData.filter(item => item.namn.toLowerCase().includes(searchTerm));
+    renderFoodList(filteredData);
+});
+
 
 function renderFoodList(data) {
     nutritionOutput.innerHTML = ""; // Clear previous results
-  
+
     data.forEach(item => {
         const div = document.createElement("div");
         div.className = "food-card";
-      
+
         // Build HTML for each food item
         div.innerHTML = `
             <h3>` + item.namn + `</h3>
@@ -69,7 +78,7 @@ function renderFoodList(data) {
 }
 
 // Render all food items immediately
-renderFoodList(mockData);
+renderFoodList(foodData);
 
 /////////////////////////////////////////////////////////////////////////////////////
 const summary = {
@@ -80,17 +89,17 @@ const summary = {
 };
 
 function updateSelectedFoodsList() {
-    const ul = selectedFoodsList.querySelector("ul");
-    ul.innerHTML = ""; // Clear the list before adding new selections
+    const ul = document.getElementById("foodList");
+    ul.innerHTML = "";
 
-    for (const [, food] of Object.entries(selectedFoods)) {
+    for (const [, food] of Object.entries(selectedFoodsList)) {
         const li = document.createElement("li");
-        li.textContent = `${food.name} - Antal: ${food.quantity}`;
+        li.textContent = food.name + " - Antal: " + food.quantity + "st";
         ul.appendChild(li);
     }
 }
 
-nutritionOutput.addEventListener("click", function(event) {
+nutritionOutput.addEventListener("click", function (event) {
     if (event.target.classList.contains("add-button")) {
         const item = event.target;
         const id = item.dataset.id;
@@ -98,17 +107,16 @@ nutritionOutput.addEventListener("click", function(event) {
         const quantity = parseInt(document.getElementById(`quantity${id}`).value, 10);
 
         // If the food item already exists, update the quantity
-        if (selectedFoods[id]) {
-            selectedFoods[id].quantity += quantity;
+        if (selectedFoodsList[id]) {
+            selectedFoodsList[id].quantity += quantity;
         } else {
             // Otherwise, add it as a new object
-            selectedFoods[id] = {
+            selectedFoodsList[id] = {
                 name: name,
                 quantity: quantity,
             };
         }
 
-        // Update the list in the DOM
         updateSelectedFoodsList();
 
         // Update the summary based on the selected food item
@@ -123,4 +131,26 @@ nutritionOutput.addEventListener("click", function(event) {
         document.getElementById("totalProtein").textContent = "Totalt protein: " + summary.totalProtein.toFixed(2) + " g";
         document.getElementById("totalFat").textContent = "Totalt fett: " + summary.totalFat.toFixed(2) + " g";
     }
+});
+
+document.getElementById("clearListButton").addEventListener("click", function () {
+    // Töm objektet som lagrar valda livsmedel
+    for (const key in selectedFoodsList) {
+        delete selectedFoodsList[key];
+    }
+
+    // Uppdatera matlistan i gränssnittet
+    updateSelectedFoodsList();
+
+    // Återställ summeringen
+    summary.totalEnergy = 0;
+    summary.totalCarbs = 0;
+    summary.totalProtein = 0;
+    summary.totalFat = 0;
+
+    // Uppdatera summeringssektionen i gränssnittet
+    document.getElementById("totalEnergy").textContent = "Total energi: 0 kcal";
+    document.getElementById("totalCarbs").textContent = "Totala kolhydrater: 0 g";
+    document.getElementById("totalProtein").textContent = "Totalt protein: 0 g";
+    document.getElementById("totalFat").textContent = "Totalt fett: 0 g";
 });

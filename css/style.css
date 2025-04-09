@@ -16,7 +16,7 @@
     border: 1px solid #ddd;
   }
 
-  #selectedFoodsList {
+  #foodList {
     list-style-type: none;
     padding: 0;
   }

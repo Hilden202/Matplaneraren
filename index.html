@@ -7,13 +7,21 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <form>
+    <div id="searchInput">
+        <h1>Matplaneraren</h1>
+        <input type="text" id="foodInput" placeholder="Sök efter mat...">
+        <button id="searchButton">Sök</button>
+    </div>
+    </form>
     <!-- Nutrition Output Section -->
     <div id="nutritionOutput" class="nutritionOutput"></div>
 
     <!-- Foodlist Section -->
     <div id="selectedFoodsList">
         <h3>Matlista</h3>
-        <ul id="selectedFoodsList"></ul>
+        <ul id="foodList"></ul>
+        <button id="clearListButton">Rensa lista</button>
     </div>
 
     <!-- Summary Section -->
