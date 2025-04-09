@@ -7,21 +7,25 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <form>
-        <label for="searchInput">Sök livsmedel:</label>
-        <input type="text" id="searchInput" placeholder="Sök livsmedel...">
-        <div id="dropdown"></div> <!-- Här läggs dropdown-listan in -->
-    </form>
-      <!-- ------------------------------------------------------------------------------------- -->
+    <!-- Nutrition Output Section -->
     <div id="nutritionOutput" class="nutritionOutput"></div>
 
+    <!-- Foodlist Section -->
+    <div id="selectedFoodsList">
+        <h3>Matlista</h3>
+        <ul id="selectedFoodsList"></ul>
+    </div>
+
+    <!-- Summary Section -->
     <div id="summary">
         <h3>Summering</h3>
         <p id="totalEnergy">Total energi: 0 kcal</p>
         <p id="totalCarbs">Totala kolhydrater: 0 g</p>
         <p id="totalProtein">Totalt protein: 0 g</p>
         <p id="totalFat">Totalt fett: 0 g</p>
-      </div>
-        <script src="script/foods.js"></script>
+    </div>
+
+
+    <script src="script/foods.js"></script>
 </body>
 </html>

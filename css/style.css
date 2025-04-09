@@ -4,15 +4,21 @@
     margin: 10px 0;
   }
   
+  input[type="number"] {
+    width: 50px;
+    margin-left: 10px;
+  }
+
   #summary {
     margin-top: 20px;
     padding: 15px;
     background-color: #f0f0f0;
     border: 1px solid #ddd;
   }
-  
-  input[type="number"] {
-    width: 50px;
-    margin-left: 10px;
+
+  #selectedFoodsList {
+    list-style-type: none;
+    padding: 0;
   }
+  
   
