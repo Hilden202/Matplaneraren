@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matplaneraren</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <form>
+        <label for="searchInput">Sök livsmedel:</label>
+        <input type="text" id="searchInput" placeholder="Sök livsmedel...">
+        <div id="dropdown"></div> <!-- Här läggs dropdown-listan in -->
+    </form>
+      <!-- ------------------------------------------------------------------------------------- -->
+    <div id="nutritionOutput" class="nutritionOutput"></div>
+
+    <div id="summary">
+        <h3>Summering</h3>
+        <p id="totalEnergy">Total energi: 0 kcal</p>
+        <p id="totalCarbs">Totala kolhydrater: 0 g</p>
+        <p id="totalProtein">Totalt protein: 0 g</p>
+        <p id="totalFat">Totalt fett: 0 g</p>
+      </div>
+        <script src="script/foods.js"></script>
+</body>
+</html>
