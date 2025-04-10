@@ -1,4 +1,4 @@
-const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/";
+/* const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/";
 
 const nutritionOutput = document.getElementById("nutritionOutput");
 let foodData = [];
@@ -27,11 +27,11 @@ fetch(url)
     })
     .catch(function(error) {
         console.error("Fel vid hämtning av data:", error);
-    });
+    }); */
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-/* const nutritionOutput = document.getElementById("nutritionOutput"); 
+const nutritionOutput = document.getElementById("nutritionOutput"); 
 const foodData = [
     {
         id: 1232,
@@ -51,7 +51,7 @@ const foodData = [
         fett: 0.2,
         protein: 0.3
     }
-]; */
+];
 
 ////////////////////////////////////////////////////////////////////////////////////
 
