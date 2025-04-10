@@ -1,38 +1,37 @@
-/* const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/";
-
+const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/";
 
 const nutritionOutput = document.getElementById("nutritionOutput");
 let foodData = [];
 
 fetch(url)
-.then(function (response) { return response.json() })
-.then(function (foodData) {
-    if (foodData.livsmedel && Array.isArray(foodData.livsmedel)) {
-        console.log(foodData.livsmedel[0]);
-        foodData = foodData.livsmedel.map(food => ({
-            id: food.id,
-            namn: food.namn,
-            livsmedelsgruppNamn: food.livsmedelsgruppNamn,
-            energiKcal: food.energiKcal,
-            kolhydrater: food.kolhydrater,
-            fett: food.fett,
-            protein: food.protein
-        }));
-        console.log(foodData);
-        renderFoodList(foodData);
-    } else {
-        console.error("Oväntad API-svarstruktur:", foodData);
-    }
-})
-.catch(error => {
-    console.error("Fel vid hämtning av data:", error);
-    alert("Ett fel inträffade vid hämtning av data. Försök igen senare.");
-}); */
+    .then(function (response) { return response.json(); })
+    .then(function (data) {
+        console.log("API-svar:", data); // 👈 Logga hela API-svaret
+        if (data.livsmedel && Array.isArray(data.livsmedel)) {
+            foodData = data.livsmedel.map(function(food) {
+                return {
+                    id: food.id,
+                    namn: food.namn,
+                    livsmedelsgruppNamn: food.livsmedelsgruppNamn,
+                    energiKcal: food.energiKcal,
+                    kolhydrater: food.kolhydrater,
+                    fett: food.fett,
+                    protein: food.protein
+                };
+            });
+            console.log("Bearbetad foodData:", foodData); // 👈 Kontrollera bearbetad data
+            renderFoodList(foodData);
+        } else {
+            console.error("Oväntad API-svarstruktur:", data);
+        }
+    })
+    .catch(function(error) {
+        console.error("Fel vid hämtning av data:", error);
+    });
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-
-const nutritionOutput = document.getElementById("nutritionOutput"); 
+/* const nutritionOutput = document.getElementById("nutritionOutput"); 
 const foodData = [
     {
         id: 1232,
@@ -52,50 +51,54 @@ const foodData = [
         fett: 0.2,
         protein: 0.3
     }
-];
+]; */
 
-/////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
+
 const searchInput = document.getElementById("foodInput");
-const dropdown = document.getElementById("dropdown");
 const selectedFoodsList = document.getElementById("selectedFoodsList");
+const foodDropdown = document.getElementById("dropdown");
 
+let selectedFoods = {}; // Använd ett objekt för att lagra valda livsmedel
 
 searchInput.addEventListener("input", function () {
     const searchTerm = searchInput.value.toLowerCase();
-    const filteredData = foodData.filter(item => item.namn.toLowerCase().includes(searchTerm));
+    const filteredData = foodData.filter(function(item) {
+        return item.namn.toLowerCase().includes(searchTerm);
+    });
     renderFoodList(filteredData);
 });
 
-
 function renderFoodList(data) {
-    nutritionOutput.innerHTML = ""; // Clear previous results
+    nutritionOutput.innerHTML = "";
 
-    data.forEach(food => {
+    data.forEach(function(food) {
         const div = document.createElement("div");
         div.className = "food-card";
 
-        // Build HTML for each food item
-        div.innerHTML = `
-            <h3>` + food.namn + `</h3>
-            <p><strong>Grupp:</strong> ` + food.livsmedelsgruppNamn + `</p>
-            <p><strong>Energi:</strong> ` + food.energiKcal + ` kcal</p>
-            <p><strong>Kolhydrater:</strong> ` + food.kolhydrater + ` g</p>
-            <p><strong>Fett:</strong> ` + food.fett + ` g</p>
-            <p><strong>Protein:</strong> ` + food.protein + ` g</p>
-            
-            <label for="quantity` + food.id + `">Antal:</label>
-            <input type="number" id="quantity` + food.id + `" value="1" min="1">
-            
-            <button class="add-button" data-id="` + food.id + `" data-name="` + food.namn + `" data-energy="` + food.energiKcal + `" data-carbs="` + food.kolhydrater + `" data-fat="` + food.fett + `" data-protein="` + food.protein + `">Lägg till</button>
-        `;
+        div.innerHTML = 
+            "<h3>" + food.namn + "</h3>" +
+            "<p><strong>Grupp:</strong> " + food.livsmedelsgruppNamn + "</p>" +
+            "<p><strong>Energi:</strong> " + food.energiKcal + " kcal</p>" +
+            "<p><strong>Kolhydrater:</strong> " + food.kolhydrater + " g</p>" +
+            "<p><strong>Fett:</strong> " + food.fett + " g</p>" +
+            "<p><strong>Protein:</strong> " + food.protein + " g</p>" +
+            "<label for='quantity" + food.id + "'>Gram:</label>" +
+            "<input type='number' id='quantity" + food.id + "' value='100' min='1'>" +
+            "<button class='add-button' " +
+            "data-id='" + food.id + "' " +
+            "data-name='" + food.namn + "' " +
+            "data-energy='" + food.energiKcal + "' " +
+            "data-carbs='" + food.kolhydrater + "' " +
+            "data-fat='" + food.fett + "' " +
+            "data-protein='" + food.protein + "'>Lägg till</button>";
+
         nutritionOutput.appendChild(div);
     });
 }
 
-// Render all food items immediately
 renderFoodList(foodData);
 
-/////////////////////////////////////////////////////////////////////////////////////
 const summary = {
     totalEnergy: 0,
     totalCarbs: 0,
@@ -105,11 +108,17 @@ const summary = {
 
 function updateSelectedFoodsList() {
     const ul = document.getElementById("foodList");
-    ul.innerHTML = "";
+    ul.innerHTML = "";  // Töm listan innan vi lägger till nya rader
 
-    for (const [, food] of Object.entries(selectedFoodsList)) {
+    // Iterera genom varje objekt i selectedFoods och skapa en ny lista
+    for (const id in selectedFoods) {
+        const food = selectedFoods[id];
         const li = document.createElement("li");
-        li.textContent = food.name + " - Antal: " + food.quantity + "st";
+
+        // Lägg till namnet och mängden på varje rad
+        li.textContent = `${food.name} - ${food.quantity}g`;
+
+        // Lägg till raderna i listan
         ul.appendChild(li);
     }
 }
@@ -117,42 +126,33 @@ function updateSelectedFoodsList() {
 nutritionOutput.addEventListener("click", function (event) {
     if (event.target.classList.contains("add-button")) {
         const item = event.target;
-        const id = item.dataset.id;
-        const name = item.dataset.name;
-        const quantity = parseInt(document.getElementById(`quantity${id}`).value, 10);
+        
+        // Logga item.dataset.id för att se om vi får rätt id
+        console.log("Button clicked. Data-id:", item.dataset.id);
 
-        // If the food item already exists, update the quantity
-        if (selectedFoodsList[id]) {
-            selectedFoodsList[id].quantity += quantity;
+        const id = item.dataset.id; // Förväntat att detta är ett nummer eller sträng
+        const name = item.dataset.name;
+        const grams = parseInt(document.getElementById("quantity" + id).value, 10) || 100;
+
+        console.log(`Adding food: ID=${id}, Name=${name}, Grams=${grams}`);
+
+        // Om vi får rätt ID här, fortsätt som tidigare
+        if (selectedFoods[id]) {
+            selectedFoods[id].quantity += grams;
         } else {
-            // Otherwise, add it as a new object
-            selectedFoodsList[id] = {
+            selectedFoods[id] = {
                 name: name,
-                quantity: quantity,
+                quantity: grams,
             };
         }
 
         updateSelectedFoodsList();
-
-        // Update the summary based on the selected food item
-        summary.totalEnergy += Number(item.dataset.energy) * Number(quantity);
-        summary.totalCarbs += Number(item.dataset.carbs) * Number(quantity);
-        summary.totalFat += Number(item.dataset.fat) * Number(quantity);
-        summary.totalProtein += Number(item.dataset.protein) * Number(quantity);
-
-        // Update the UI with the totals
-        document.getElementById("totalEnergy").textContent = "Total energi: " + summary.totalEnergy.toFixed(2) + " kcal";
-        document.getElementById("totalCarbs").textContent = "Totala kolhydrater: " + summary.totalCarbs.toFixed(2) + " g";
-        document.getElementById("totalProtein").textContent = "Totalt protein: " + summary.totalProtein.toFixed(2) + " g";
-        document.getElementById("totalFat").textContent = "Totalt fett: " + summary.totalFat.toFixed(2) + " g";
     }
 });
 
 document.getElementById("clearListButton").addEventListener("click", function () {
     // Töm objektet som lagrar valda livsmedel
-    for (const key in selectedFoodsList) {
-        delete selectedFoodsList[key];
-    }
+    selectedFoods = {}; // Rensa selectedFoods istället för selectedFoodsList
 
     // Uppdatera matlistan i gränssnittet
     updateSelectedFoodsList();
@@ -169,3 +169,5 @@ document.getElementById("clearListButton").addEventListener("click", function ()
     document.getElementById("totalProtein").textContent = "Totalt protein: 0 g";
     document.getElementById("totalFat").textContent = "Totalt fett: 0 g";
 });
+
+console.log(selectedFoods); // Debugga och kolla på arrayen
