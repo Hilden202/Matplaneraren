@@ -31,7 +31,10 @@ fetch(url)
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-const nutritionOutput = document.getElementById("nutritionOutput"); 
+const nutritionOutput = document.getElementById("nutritionOutput");
+const searchInput = document.getElementById("foodInput");
+const selectedFoodsList = document.getElementById("selectedFoodsList");
+
 const foodData = [
     {
         id: 1232,
@@ -53,13 +56,16 @@ const foodData = [
     }
 ];
 
-////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
 
-const searchInput = document.getElementById("foodInput");
-const selectedFoodsList = document.getElementById("selectedFoodsList");
-const foodDropdown = document.getElementById("dropdown");
+let selectedFoods = {};
 
-let selectedFoods = {}; // Använd ett objekt för att lagra valda livsmedel
+const summary = {
+    totalEnergy: 0,
+    totalCarbs: 0,
+    totalProtein: 0,
+    totalFat: 0
+};
 
 searchInput.addEventListener("input", function () {
     const searchTerm = searchInput.value.toLowerCase();
@@ -97,46 +103,51 @@ function renderFoodList(data) {
     });
 }
 
-renderFoodList(foodData);
-
-const summary = {
-    totalEnergy: 0,
-    totalCarbs: 0,
-    totalProtein: 0,
-    totalFat: 0
-};
-
 function updateSelectedFoodsList() {
     const ul = document.getElementById("foodList");
-    ul.innerHTML = "";  // Töm listan innan vi lägger till nya rader
+    ul.innerHTML = "";
 
-    // Iterera genom varje objekt i selectedFoods och skapa en ny lista
     for (const id in selectedFoods) {
         const food = selectedFoods[id];
         const li = document.createElement("li");
 
-        // Lägg till namnet och mängden på varje rad
-        li.textContent = `${food.name} - ${food.quantity}g`;
+        li.textContent = `${food.name} = ${food.quantity}g`;
 
-        // Lägg till raderna i listan
         ul.appendChild(li);
     }
+}
+
+function updateSummary() {
+    summary.totalEnergy = 0;
+    summary.totalCarbs = 0;
+    summary.totalProtein = 0;
+    summary.totalFat = 0;
+
+    for (const id in selectedFoods) {
+        const item = selectedFoods[id];
+        const food = foodData.find(f => f.id == id);
+        const factor = item.quantity / 100;
+
+        summary.totalEnergy += food.energiKcal * factor;
+        summary.totalCarbs += food.kolhydrater * factor;
+        summary.totalProtein += food.protein * factor;
+        summary.totalFat += food.fett * factor;
+    }
+
+    document.getElementById("totalEnergy").textContent = "Total energi: " + summary.totalEnergy.toFixed(1) + " kcal";
+    document.getElementById("totalCarbs").textContent = "Totala kolhydrater: " + summary.totalCarbs.toFixed(1) + " g";
+    document.getElementById("totalProtein").textContent = "Totalt protein: " + summary.totalProtein.toFixed(1) + " g";
+    document.getElementById("totalFat").textContent = "Totalt fett: " + summary.totalFat.toFixed(1) + " g";
 }
 
 nutritionOutput.addEventListener("click", function (event) {
     if (event.target.classList.contains("add-button")) {
         const item = event.target;
-        
-        // Logga item.dataset.id för att se om vi får rätt id
-        console.log("Button clicked. Data-id:", item.dataset.id);
 
-        const id = item.dataset.id; // Förväntat att detta är ett nummer eller sträng
+        const id = item.dataset.id;
         const name = item.dataset.name;
         const grams = parseInt(document.getElementById("quantity" + id).value, 10) || 100;
 
-        console.log(`Adding food: ID=${id}, Name=${name}, Grams=${grams}`);
-
-        // Om vi får rätt ID här, fortsätt som tidigare
         if (selectedFoods[id]) {
             selectedFoods[id].quantity += grams;
         } else {
@@ -147,27 +158,14 @@ nutritionOutput.addEventListener("click", function (event) {
         }
 
         updateSelectedFoodsList();
+        updateSummary();
     }
 });
 
 document.getElementById("clearListButton").addEventListener("click", function () {
-    // Töm objektet som lagrar valda livsmedel
-    selectedFoods = {}; // Rensa selectedFoods istället för selectedFoodsList
-
-    // Uppdatera matlistan i gränssnittet
+    selectedFoods = {};
     updateSelectedFoodsList();
-
-    // Återställ summeringen
-    summary.totalEnergy = 0;
-    summary.totalCarbs = 0;
-    summary.totalProtein = 0;
-    summary.totalFat = 0;
-
-    // Uppdatera summeringssektionen i gränssnittet
-    document.getElementById("totalEnergy").textContent = "Total energi: 0 kcal";
-    document.getElementById("totalCarbs").textContent = "Totala kolhydrater: 0 g";
-    document.getElementById("totalProtein").textContent = "Totalt protein: 0 g";
-    document.getElementById("totalFat").textContent = "Totalt fett: 0 g";
+    updateSummary();
 });
 
-console.log(selectedFoods); // Debugga och kolla på arrayen
+renderFoodList(foodData);
