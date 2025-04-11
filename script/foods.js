@@ -12,11 +12,11 @@ fetch(url)
                 return {
                     id: food.nummer,
                     namn: food.namn,
-                    livsmedelsgruppNamn: food.livsmedelsgruppNamn,
-                    energiKcal: food.energiKcal,
-                    kolhydrater: food.kolhydrater,
-                    fett: food.fett,
-                    protein: food.protein
+                    livsmedelsgruppNamn: food.livsmedelsgrupp || "Okänd grupp",
+                    energiKcal: food.Energi || 0,
+                    kolhydrater: food.Kolhydrater || 0,
+                    fett: food.fett || 0,
+                    protein: food.protein || 0
                 };
             });
             console.log("Bearbetad foodData:", foodData);
