@@ -1,4 +1,4 @@
-/* const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/";
+const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/";
 
 const nutritionOutput = document.getElementById("nutritionOutput");
 let foodData = [];
@@ -6,11 +6,11 @@ let foodData = [];
 fetch(url)
     .then(function (response) { return response.json(); })
     .then(function (data) {
-        console.log("API-svar:", data); // 👈 Logga hela API-svaret
+        console.log("API-svar:", data);
         if (data.livsmedel && Array.isArray(data.livsmedel)) {
             foodData = data.livsmedel.map(function(food) {
                 return {
-                    id: food.id,
+                    id: food.nummer,
                     namn: food.namn,
                     livsmedelsgruppNamn: food.livsmedelsgruppNamn,
                     energiKcal: food.energiKcal,
@@ -19,7 +19,7 @@ fetch(url)
                     protein: food.protein
                 };
             });
-            console.log("Bearbetad foodData:", foodData); // 👈 Kontrollera bearbetad data
+            console.log("Bearbetad foodData:", foodData);
             renderFoodList(foodData);
         } else {
             console.error("Oväntad API-svarstruktur:", data);
@@ -27,11 +27,11 @@ fetch(url)
     })
     .catch(function(error) {
         console.error("Fel vid hämtning av data:", error);
-    }); */
+    });
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-const nutritionOutput = document.getElementById("nutritionOutput");
+/* const nutritionOutput = document.getElementById("nutritionOutput");
 const searchInput = document.getElementById("foodInput");
 const selectedFoodsList = document.getElementById("selectedFoodsList");
 
@@ -55,7 +55,7 @@ const foodData = [
         protein: 0.3
     }
 ];
-
+ */
 //////////////////////////////////////////////////////////////////////////////////////
 
 let selectedFoods = {};
@@ -78,44 +78,52 @@ searchInput.addEventListener("input", function () {
 function renderFoodList(data) {
     nutritionOutput.innerHTML = "";
 
-    data.forEach(function(food) {
-        const div = document.createElement("div");
-        div.className = "food-card";
+    data.forEach(async function(food) {
+        // Hämta näringsvärden för detta livsmedel
+        const nutritionUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${food.id}/naringsvarden?sprak=1`;
+        
+        try {
+            const response = await fetch(nutritionUrl);
+            const nutritionData = await response.json();
 
-        div.innerHTML = 
-            "<h3>" + food.namn + "</h3>" +
-            "<p><strong>Grupp:</strong> " + food.livsmedelsgruppNamn + "</p>" +
-            "<p><strong>Energi:</strong> " + food.energiKcal + " kcal</p>" +
-            "<p><strong>Kolhydrater:</strong> " + food.kolhydrater + " g</p>" +
-            "<p><strong>Fett:</strong> " + food.fett + " g</p>" +
-            "<p><strong>Protein:</strong> " + food.protein + " g</p>" +
-            "<label for='quantity" + food.id + "'>Gram:</label>" +
-            "<input type='number' id='quantity" + food.id + "' value='100' min='1'>" +
-            "<button class='add-button' " +
-            "data-id='" + food.id + "' " +
-            "data-name='" + food.namn + "' " +
-            "data-energy='" + food.energiKcal + "' " +
-            "data-carbs='" + food.kolhydrater + "' " +
-            "data-fat='" + food.fett + "' " +
-            "data-protein='" + food.protein + "'>Lägg till</button>";
+            // Plocka ut energiinnehåll, kolhydrater, fett, protein från nutritionData
+            const getValue = (name) => {
+                const item = nutritionData.find(n => n.namn.toLowerCase().includes(name.toLowerCase()));
+                return item ? item.varde : 0;
+            };
 
-        nutritionOutput.appendChild(div);
+            const energiKcal = getValue("Energi, kilokalorier");
+            const kolhydrater = getValue("Kolhydrater");
+            const fett = getValue("Fett");
+            const protein = getValue("Protein");
+
+            const div = document.createElement("div");
+            div.className = "food-card";
+
+            div.innerHTML = 
+                "<h3>" + food.namn + "</h3>" +
+                "<p><strong>Grupp:</strong> " + food.livsmedelsgruppNamn + "</p>" +
+                "<p><strong>Energi:</strong> " + energiKcal + " kcal</p>" +
+                "<p><strong>Kolhydrater:</strong> " + kolhydrater + " g</p>" +
+                "<p><strong>Fett:</strong> " + fett + " g</p>" +
+                "<p><strong>Protein:</strong> " + protein + " g</p>" +
+                "<label for='quantity" + food.id + "'>Gram:</label>" +
+                "<input type='number' id='quantity" + food.id + "' value='100' min='1'>" +
+                "<button class='add-button' " +
+                "data-id='" + food.id + "' " +
+                "data-name='" + food.namn + "' " +
+                "data-energy='" + energiKcal + "' " +
+                "data-carbs='" + kolhydrater + "' " +
+                "data-fat='" + fett + "' " +
+                "data-protein='" + protein + "'>Lägg till</button>";
+
+            nutritionOutput.appendChild(div);
+        } catch (error) {
+            console.error("Fel vid hämtning av näringsvärden för:", food.namn, error);
+        }
     });
 }
 
-function updateSelectedFoodsList() {
-    const ul = document.getElementById("foodList");
-    ul.innerHTML = "";
-
-    for (const id in selectedFoods) {
-        const food = selectedFoods[id];
-        const li = document.createElement("li");
-
-        li.textContent = `${food.name} = ${food.quantity}g`;
-
-        ul.appendChild(li);
-    }
-}
 
 function updateSummary() {
     summary.totalEnergy = 0;
