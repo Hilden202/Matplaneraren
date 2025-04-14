@@ -104,36 +104,30 @@ fetch(url)
                 }
                 
 
-                async function renderFoodList(data) {
-                    nutritionOutput.innerHTML = "";
-                    
-
+                function renderFoodList(data) {
+                    nutritionOutput.innerHTML = ""; // Töm innan rendering
+                
                     data.forEach(async function(food) {
-                        // Hämta näringsvärden för detta livsmedel
                         const nutritionUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${food.id}/naringsvarden?sprak=1`;
                         
                         try {
                             const response = await fetch(nutritionUrl);
                             const nutritionData = await response.json();
                             
-                            
-                            
-                            // Plocka ut energiinnehåll, kolhydrater, fett, protein från nutritionData
                             const getValue = (name) => {
                                 const item = nutritionData.find(n => n.namn.toLowerCase().includes(name.toLowerCase()));
                                 return item ? item.varde : 0;
                             };
-                                
-                                const energiKcal = getValue("energi");
-                                const kolhydrater = getValue("kolhydrater");
-                                const fett = getValue("fett");
-                                const protein = getValue("protein");
-                                const groupName = await fetchClassification(food.id);
-                                
-                                const div = document.createElement("div");
-                                
-                                div.className = "food-card";
-                                div.innerHTML = 
+                            
+                            const energiKcal = getValue("energi");
+                            const kolhydrater = getValue("kolhydrater");
+                            const fett = getValue("fett");
+                            const protein = getValue("protein");
+                            const groupName = await fetchClassification(food.id);
+                            
+                            const div = document.createElement("div");
+                            div.className = "food-card";
+                            div.innerHTML = 
                                 "<h3>" + food.namn + "</h3>" +
                                 "<p><strong>Grupp:</strong> " + groupName + "</p>" +
                                 "<p><strong>Energi:</strong> " + energiKcal + " kcal</p>" +
@@ -150,14 +144,13 @@ fetch(url)
                                 "data-carbs='" + kolhydrater + "' " +
                                 "data-fat='" + fett + "' " +
                                 "data-protein='" + protein + "'>Lägg till</button>";
-                                
-                            nutritionOutput.appendChild(div);
                             
-                            // Lägg till klickhändelse på knappen
+                            nutritionOutput.appendChild(div);
+                
+                            // Lägg till eventlyssnare för knappen
                             const button = div.querySelector(".add-button");
                             button.addEventListener("click", function () {
                                 const quantity = document.getElementById("quantity" + food.id).value;
-                                
                                 const selectedFood = {
                                     id: food.id,
                                     namn: food.namn,
@@ -167,34 +160,32 @@ fetch(url)
                                     protein: protein,
                                     gram: quantity
                                 };
-                                
-                                // Här kan du lägga till i lista eller rendera i annan vy
-                                console.log("Tillagd:", selectedFood);
                             });
-                            
+                
                         } catch (error) {
                             console.error("Fel vid hämtning av näringsvärden för:", food.namn, error);
                         }
                     });
                 }
 
+
+
                 function updateSelectedFoodsList() {
-                    const selectedFoodsList = document.getElementById("selectedFoodsList");
-                    selectedFoodsList.innerHTML = ""; // rensa listan
-                    
+                    const foodList = document.getElementById("foodList");
+                    foodList.innerHTML = "";
+                
                     for (const id in selectedFoods) {
                         const item = selectedFoods[id];
                         const listItem = document.createElement("li");
-                        listItem.textContent = `${item.name}: ${item.quantity} g`;
-                        selectedFoodsList.appendChild(listItem);
+                        listItem.textContent = item.name + ": " +  item.quantity + "g";
+                        foodList.appendChild(listItem);
                     }
                 }
                 
                 
                 
+                
                 function updateSummary() {
-                    console.log("Uppdaterar sammanfattning...");
-                    
                     let totalEnergy = 0;
                     let totalCarbs = 0;
                     let totalProtein = 0;
@@ -204,7 +195,6 @@ fetch(url)
                     for (const id in selectedFoods) {
                         const item = selectedFoods[id];
                         const food = foodData.find(f => f.id == id); // Hitta matvaran med rätt ID
-                        console.log("Found food:", food);
                         const factor = item.quantity / 100;
                         
                         totalEnergy += item.energiKcal * factor;
@@ -214,11 +204,6 @@ fetch(url)
                         
                     }
                     
-                    // Logga resultaten för att säkerställa att de beräknas
-                    console.log("Total energi:", totalEnergy);
-                    console.log("Totala kolhydrater:", totalCarbs);
-                    console.log("Totalt protein:", totalProtein);
-                    console.log("Totalt fett:", totalFat);
                     
                     // Uppdatera UI med de nya värdena
                     document.getElementById("totalEnergy").textContent = "Total energi: " + totalEnergy.toFixed(1) + " kcal";
@@ -227,11 +212,11 @@ fetch(url)
                     document.getElementById("totalFat").textContent = "Totalt fett: " + totalFat.toFixed(1) + " g";
                 }
                 
+                
+                
                 nutritionOutput.addEventListener("click", function (event) {
                     if (event.target.classList.contains("add-button")) {
                         const item = event.target;
-                        
-                        console.log("Dataset:", item.dataset);
                         
                         const id = item.dataset.id;
                         const name = item.dataset.name;
@@ -251,7 +236,6 @@ fetch(url)
                         }
                         
                         updateSelectedFoodsList();
-                        console.log("Kallar på updateSummary()...");
                         updateSummary();
                     }
                 });
