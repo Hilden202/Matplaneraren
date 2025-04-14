@@ -1,7 +1,7 @@
-const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/";
+const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/?page=1&pageSize=100";
 
 const nutritionOutput = document.getElementById("nutritionOutput");
-const searchInput = document.getElementById("foodInput"); // Define searchInput
+const searchInput = document.getElementById("foodInput");
 
 function getValue(food, namn) {
     if (!food.naringsvarden) return 0;
