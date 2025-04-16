@@ -17,10 +17,29 @@
   font-size: 20px;
 }
 
+@media (max-width: 601px) {
+  .page {
+    flex-direction: column;
+  }
+
+  .main-left {
+    order: 1;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .main-right {
+    order: 2;
+    position: static;
+    padding-top: 20px;
+  }
+}
+
 .page {
 
   display: flex;
   flex-direction: row;
+  align-items: flex-start
 }
 
 .main-left {
