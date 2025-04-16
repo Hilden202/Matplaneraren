@@ -1,9 +1,18 @@
 const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel?offset=0&limit=2500&sprak=1";
 const foodList = document.getElementById("foodList");
 const foodListContainer = document.getElementById("foodListContainer");
-
 const nutritionOutput = document.getElementById("nutritionOutput");
 const searchInput = document.getElementById("foodInput");
+
+let foodData = [];
+let selectedFoods = [];
+
+const summary = {
+    totalEnergy: 0,
+    totalCarbs: 0,
+    totalFat: 0,
+    totalProtein: 0
+};
 
 function getValue(food, namn) {
     if (!food.naringsvarden) return 0;
@@ -12,8 +21,27 @@ function getValue(food, namn) {
     return item ? item.varde : 0;
 }
 
-let foodData = [];
+async function fetchClassification(foodId) {
+    const classificationUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${foodId}/klassificeringar?sprak=1`;
 
+    try {
+        const response = await fetch(classificationUrl);
+        const data = await response.json();
+
+        // Kontrollera om klassificeringar finns
+        if (data && data.length > 0) {
+
+            const groupName = data[0].namn;
+            return groupName;
+        } else {
+            return "Ingen klassificering tillgänglig";
+        }
+    } catch (error) {
+        console.error("Fel vid hämtning av klassificeringar:", error);
+        return "Fel vid hämtning";
+    }
+
+}
 
 fetch(url)
     .then(function (response) { return response.json(); })
@@ -37,20 +65,6 @@ fetch(url)
         console.error("Fel vid hämtning av data:", error);
     });
 
-let selectedFoods = [];
-
-const summary = {
-    totalEnergy: 0,
-    totalCarbs: 0,
-    totalFat: 0,
-    totalProtein: 0
-};
-
-searchInput.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") {
-        event.preventDefault();
-    }
-});
 
 searchInput.addEventListener("input", function () {
     const searchTerm = searchInput.value.toLowerCase();
@@ -58,34 +72,14 @@ searchInput.addEventListener("input", function () {
         return item.namn.toLowerCase().includes(searchTerm);
     });
 
-    console.log("Filtrerad data:", filteredData);
-
     renderFoodList(filteredData);
 });
 
-
-
-async function fetchClassification(foodId) {
-    const classificationUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${foodId}/klassificeringar?sprak=1`;
-
-    try {
-        const response = await fetch(classificationUrl);
-        const data = await response.json();
-
-        // Kontrollera om klassificeringar finns
-        if (data && data.length > 0) {
-
-            const groupName = data[0].namn;
-            return groupName;
-        } else {
-            return "Ingen klassificering tillgänglig";
-        }
-    } catch (error) {
-        console.error("Fel vid hämtning av klassificeringar:", error);
-        return "Fel vid hämtning";
+searchInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
     }
-
-}
+});
 
 
 function renderFoodList(data) {
@@ -131,7 +125,6 @@ function renderFoodList(data) {
 
             nutritionOutput.appendChild(div);
 
-            // Lägg till eventlyssnare för knappen
             const button = div.querySelector(".add-button");
             button.addEventListener("click", function () {
                 addFood(food.id, food.namn, energiKcal, kolhydrater, fett, protein);
@@ -179,14 +172,13 @@ function updateSelectedFoodsList() {
             ? item.name.substring(0, maxLength - 3) + "..."
             : item.name;
 
-        foodList.innerHTML += `
-                            <li>
-                                <button onclick="removeFood(${i})"> x </button>
-                                <button onclick="decreaseQuantity(${i})"> - </button>
-                                <button onclick="increaseQuantity(${i})"> + </button>
-                                ${item.quantity} g ${trimmedName}
-                            </li>
-                        `;
+        foodList.innerHTML +=
+            "<li class='food-list-item'>" +
+            "<button class='adjust-button' onclick='removeFood(" + i + ")'>x</button>" +
+            "<button class='adjust-button' onclick='decreaseQuantity(" + i + ")'>-</button>" +
+            "<button class='adjust-button' onclick='increaseQuantity(" + i + ")'>+</button>" +
+            "<span class='food-amount'>" + item.quantity + " g " + trimmedName + "</span>" +
+            "</li>";
     }
 
     foodList.innerHTML += "</ul>";
@@ -212,7 +204,6 @@ function decreaseQuantity(index) {
     updateSelectedFoodsList();
 }
 
-
 function updateSummary() {
     let totalEnergy = 0;
     let totalCarbs = 0;
@@ -230,17 +221,11 @@ function updateSummary() {
         totalProtein += item.protein * factor;
     }
 
-
-
     document.getElementById("totalEnergy").textContent = "Total energi: " + totalEnergy.toFixed(1) + " kcal";
     document.getElementById("totalCarbs").textContent = "Totala kolhydrater: " + totalCarbs.toFixed(1) + " g";
     document.getElementById("totalFat").textContent = "Totalt fett: " + totalFat.toFixed(1) + " g";
     document.getElementById("totalProtein").textContent = "Totalt protein: " + totalProtein.toFixed(1) + " g";
 }
-
-
-
-
 
 document.getElementById("clearListButton").addEventListener("click", function () {
     selectedFoods = [];
