@@ -25,23 +25,6 @@ html {
   font-size: 20px;
 }
 
-/* @media (max-width: 601px) {
-  .page {
-    flex-direction: column;
-  }
-
-  .main-left {
-    order: 1;
-    max-height: none;
-    overflow-y: visible;
-  }
-
-  .main-right {
-    order: 2;
-    position: static;
-  }
-} */
-
 .page {
   width: 100%;
   display: flex;
@@ -56,18 +39,18 @@ html {
 
 
 .main-left {
-  flex-basis: 60vw;
+  flex-basis: 62vw;
   align-items: flex-start
 }
 
 .main-right {
-  flex-basis: 50vw;
+  flex-basis: 48vw;
   position: sticky;
   top: 151px;
-  height: 100vh; /* Sätt en fast höjd på sticky-elementet */
-  max-height: 100vh; /* Se till att den inte går över viewport-höjden */
+  height: 100vh;
+  max-height: 100vh;
   padding-left: 10px;
-  overflow-y: auto; /* Gör att innehållet kan rullas */
+  overflow-y: auto;
 }
 
 
@@ -89,7 +72,7 @@ input[type="number"] {
   padding: 10px;
   border: 1px solid #ccc;
   box-sizing: border-box;
-  font-size: 16px; /* fixar att mobilen inte zoomar */
+  font-size: 16px;
 }
 
 .food-list {
