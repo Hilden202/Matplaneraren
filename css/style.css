@@ -4,7 +4,6 @@ html, body {
 
 html {
   max-width: 100vw;
-  overflow-x: hidden; /* TA BORT DENNA! */
 }
 
 .header-top {
@@ -57,12 +56,12 @@ html {
 
 
 .main-left {
-  flex-basis: 60vw;
+  flex-basis: 55vw;
   align-items: flex-start
 }
 
 .main-right {
-  flex-basis: 40vw;
+  flex-basis: 45vw;
   position: sticky;
   top: 151px;
   height: 0;
@@ -87,7 +86,7 @@ input[type="number"] {
   padding: 10px;
   border: 1px solid #ccc;
   box-sizing: border-box;
-  font-size: 16px; /* 👈 fixar att mobilen inte zoomar */
+  font-size: 16px; /* fixar att mobilen inte zoomar */
 }
 
 .food-list {
