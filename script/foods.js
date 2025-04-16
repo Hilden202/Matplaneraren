@@ -13,6 +13,8 @@ function getValue(food, namn) {
 }
 
 let foodData = [];
+let isDataLoaded = false;
+
 
 fetch(url)
     .then(function (response) { return response.json(); })
@@ -46,13 +48,18 @@ const summary = {
 };
 
 searchInput.addEventListener("input", function () {
+    if (!isDataLoaded) return;
+
     const searchTerm = searchInput.value.toLowerCase();
     const filteredData = foodData.filter(function (item) {
         return item.namn.toLowerCase().includes(searchTerm);
     });
-    renderFoodList(filteredData);
 
+    console.log("Filtrerad data:", filteredData);
+
+    renderFoodList(filteredData);
 });
+
 
 async function fetchClassification(foodId) {
     const classificationUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${foodId}/klassificeringar?sprak=1`;
