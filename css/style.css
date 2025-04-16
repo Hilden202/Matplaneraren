@@ -11,6 +11,8 @@
   border-bottom: 5px solid;
   border-left: 1px solid;
   border-right: 1px solid;
+  border-color: #ccc;
+  border-bottom-style: groove;
   color: gold;
   font-size: 20px;
 }
@@ -46,7 +48,7 @@ input[type="number"] {
 }
 
 .food-list {
-  background-color: yellow;
+  background-color: #f0f0f0;
   background-size: cover;
   background-repeat: no-repeat;
   border: 1px solid #ccc;
