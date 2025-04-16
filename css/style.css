@@ -25,7 +25,7 @@ html {
   font-size: 20px;
 }
 
-@media (max-width: 601px) {
+/* @media (max-width: 601px) {
   .page {
     flex-direction: column;
   }
@@ -40,7 +40,7 @@ html {
     order: 2;
     position: static;
   }
-}
+} */
 
 .page {
   width: 100%;
@@ -56,17 +56,20 @@ html {
 
 
 .main-left {
-  flex-basis: 55vw;
+  flex-basis: 60vw;
   align-items: flex-start
 }
 
 .main-right {
-  flex-basis: 45vw;
+  flex-basis: 50vw;
   position: sticky;
   top: 151px;
-  height: 0;
+  height: 100vh; /* Sätt en fast höjd på sticky-elementet */
+  max-height: 100vh; /* Se till att den inte går över viewport-höjden */
   padding-left: 10px;
+  overflow-y: auto; /* Gör att innehållet kan rullas */
 }
+
 
 .food-card {
   border: 1px solid #ccc;
