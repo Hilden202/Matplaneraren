@@ -174,9 +174,9 @@ function updateSelectedFoodsList() {
 
         foodList.innerHTML +=
             "<li class='food-list-item'>" +
-            "<button class='adjust-button' onclick='removeFood(" + i + ")'>x</button>" +
-            "<button class='adjust-button' onclick='decreaseQuantity(" + i + ")'>-</button>" +
-            "<button class='adjust-button' onclick='increaseQuantity(" + i + ")'>+</button>" +
+            "<button class='adjust-button' onclick='removeFood(" + i + ")'> x </button>" +
+            "<button class='adjust-button' onclick='decreaseQuantity(" + i + ")'> - </button>" +
+            "<button class='adjust-button' onclick='increaseQuantity(" + i + ")'> + </button>" +
             "<span class='food-amount'>" + item.quantity + " g " + trimmedName + "</span>" +
             "</li>";
     }
