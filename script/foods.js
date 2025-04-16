@@ -63,13 +63,13 @@ fetch(url)
                 */
                //////////////////////////////////////////////////////////////////////////////////////
                
-               let selectedFoods = {};
+               let selectedFoods = [];
                
                const summary = {
                    totalEnergy: 0,
                    totalCarbs: 0,
-                   totalProtein: 0,
-                   totalFat: 0
+                   totalFat: 0,
+                   totalProtein: 0
                 };
                 
                 searchInput.addEventListener("input", function () {
@@ -119,11 +119,11 @@ fetch(url)
                                 return item ? item.varde : 0;
                             };
                             
+                            const groupName = await fetchClassification(food.id);
                             const energiKcal = getValue("energi");
                             const kolhydrater = getValue("kolhydrater");
                             const fett = getValue("fett");
                             const protein = getValue("protein");
-                            const groupName = await fetchClassification(food.id);
                             
                             const div = document.createElement("div");
                             div.className = "food-card";
@@ -168,48 +168,68 @@ fetch(url)
                     });
                 }
 
-
-
                 function updateSelectedFoodsList() {
-                    const foodList = document.getElementById("foodList");
-                    foodList.innerHTML = "";
+                    foodList.innerHTML = "<h3>Valda livsmedel</h3><ul>";
                 
-                    for (const id in selectedFoods) {
-                        const item = selectedFoods[id];
-                        const listItem = document.createElement("li");
-                        listItem.textContent = item.name + ": " +  item.quantity + "g";
-                        foodList.appendChild(listItem);
+                    for (let i = 0; i < selectedFoods.length; i++) {
+                        const item = selectedFoods[i];
+                
+                        foodList.innerHTML += `
+                            <li>
+                                <button onclick="removeFood(${i})"> x </button>
+                                <button onclick="increaseQuantity(${i})"> + </button>
+                                <button onclick="decreaseQuantity(${i})"> - </button>
+                                ${item.quantity} g ${item.name}
+                            </li>
+                        `;
                     }
+                
+                    foodList.innerHTML += "</ul>";
+                    updateSummary();
                 }
                 
                 
+                function removeFood(index) {
+                    selectedFoods.splice(index, 1);
+                    updateSelectedFoodsList();
+                }
+                
+                function increaseQuantity(index) {
+                    selectedFoods[index].quantity += 10;
+                    updateSelectedFoodsList();
+                }
+                
+                function decreaseQuantity(index) {
+                    selectedFoods[index].quantity -= 10;
+                    if (selectedFoods[index].quantity <= 0) {
+                        selectedFoods.splice(index, 1);
+                    }
+                    updateSelectedFoodsList();
+                }
                 
                 
                 function updateSummary() {
                     let totalEnergy = 0;
                     let totalCarbs = 0;
-                    let totalProtein = 0;
                     let totalFat = 0;
+                    let totalProtein = 0;
                     
-                    // Iterera genom selectedFoods och summera värdena
-                    for (const id in selectedFoods) {
-                        const item = selectedFoods[id];
-                        const food = foodData.find(f => f.id == id); // Hitta matvaran med rätt ID
+                    for (const item of selectedFoods) {
+                        const food = foodData.find(f => f.id === item.id);
                         const factor = item.quantity / 100;
-                        
+                    
                         totalEnergy += item.energiKcal * factor;
                         totalCarbs += item.kolhydrater * factor;
-                        totalProtein += item.protein * factor;
                         totalFat += item.fett * factor;
-                        
+                        totalProtein += item.protein * factor;
                     }
                     
                     
-                    // Uppdatera UI med de nya värdena
+                    
                     document.getElementById("totalEnergy").textContent = "Total energi: " + totalEnergy.toFixed(1) + " kcal";
                     document.getElementById("totalCarbs").textContent = "Totala kolhydrater: " + totalCarbs.toFixed(1) + " g";
-                    document.getElementById("totalProtein").textContent = "Totalt protein: " + totalProtein.toFixed(1) + " g";
                     document.getElementById("totalFat").textContent = "Totalt fett: " + totalFat.toFixed(1) + " g";
+                    document.getElementById("totalProtein").textContent = "Totalt protein: " + totalProtein.toFixed(1) + " g";
                 }
                 
                 
@@ -222,18 +242,22 @@ fetch(url)
                         const name = item.dataset.name;
                         const grams = parseInt(document.getElementById("quantity" + id).value, 10) || 100;
                         
-                        if (selectedFoods[id]) {
-                            selectedFoods[id].quantity += grams;
+                        const existingItem = selectedFoods.find(item => item.id === id);
+
+                        if (existingItem) {
+                            existingItem.quantity += grams;
                         } else {
-                            selectedFoods[id] = {
+                            selectedFoods.push({
+                                id: id,
                                 name: name,
                                 quantity: grams,
                                 energiKcal: parseFloat(item.dataset.energy),
                                 kolhydrater: parseFloat(item.dataset.carbs),
                                 fett: parseFloat(item.dataset.fat),
                                 protein: parseFloat(item.dataset.protein),
-                            };
+                            });
                         }
+                        
                         
                         updateSelectedFoodsList();
                         updateSummary();
