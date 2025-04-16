@@ -31,7 +31,6 @@
   .main-right {
     order: 2;
     position: static;
-    padding-top: 20px;
   }
 }
 
@@ -43,11 +42,11 @@
 }
 
 .main-left {
-  flex-basis: 50vw;
+  flex-basis: 40vw;
 }
 
 .main-right {
-  flex-basis: 50vw;
+  flex-basis: 60vw;
   position: sticky;
   top: 151px;
   height: 0;
@@ -56,8 +55,10 @@
 
 .food-card {
   border: 1px solid #ccc;
+  box-sizing: border-box;
   padding: 10px;
   margin: 10px 0;
+  max-width: 100%;
 
 }
 
