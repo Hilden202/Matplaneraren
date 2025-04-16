@@ -1,4 +1,4 @@
-const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/?page=2&pageSize=50"; // klura ut page size för att hämta andra sidor
+const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel?offset=0&limit=2500&sprak=1";
 const foodList = document.getElementById("foodList");
 const foodListContainer = document.getElementById("foodListContainer");
 
@@ -63,7 +63,7 @@ async function fetchClassification(foodId) {
 
         // Kontrollera om klassificeringar finns
         if (data && data.length > 0) {
-           
+
             const groupName = data[0].namn;
             return groupName;
         } else {
@@ -125,7 +125,7 @@ function renderFoodList(data) {
             button.addEventListener("click", function () {
                 addFood(food.id, food.namn, energiKcal, kolhydrater, fett, protein);
             });
-            
+
 
         } catch (error) {
             console.error("Fel vid hämtning av näringsvärden för:", food.namn, error);
@@ -157,12 +157,12 @@ function addFood(id, namn, energiKcal, kolhydrater, fett, protein) {
 }
 
 function updateSelectedFoodsList() {
-    foodList.innerHTML = "<h4>Valda livsmedel:</h4><ul>";
+    foodList.innerHTML = "";
 
     for (let i = 0; i < selectedFoods.length; i++) {
         const item = selectedFoods[i];
 
-        
+
         const maxLength = 35; // Max längd för namn i listan
         let trimmedName = item.name.length > maxLength
             ? item.name.substring(0, maxLength - 3) + "..."
