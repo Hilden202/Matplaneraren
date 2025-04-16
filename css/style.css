@@ -68,10 +68,11 @@ input[type="number"] {
   margin-left: 10px;
 }
 
-#foodInput{
+#foodInput {
   padding: 10px;
   border: 1px solid #ccc;
   box-sizing: border-box;
+  font-size: 16px; /* 👈 fixar att mobilen inte zoomar */
 }
 
 .food-list {
