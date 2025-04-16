@@ -13,7 +13,6 @@ function getValue(food, namn) {
 }
 
 let foodData = [];
-let isDataLoaded = false;
 
 
 fetch(url)
@@ -47,9 +46,13 @@ const summary = {
     totalProtein: 0
 };
 
-searchInput.addEventListener("input", function () {
-    if (!isDataLoaded) return;
+searchInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+    }
+});
 
+searchInput.addEventListener("input", function () {
     const searchTerm = searchInput.value.toLowerCase();
     const filteredData = foodData.filter(function (item) {
         return item.namn.toLowerCase().includes(searchTerm);
@@ -59,6 +62,7 @@ searchInput.addEventListener("input", function () {
 
     renderFoodList(filteredData);
 });
+
 
 
 async function fetchClassification(foodId) {
