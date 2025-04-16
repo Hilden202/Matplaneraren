@@ -1,24 +1,56 @@
+.header-top {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  z-index: 100;
+  padding: 10px;
+  border-bottom: 5px solid;
+  border-left: 1px solid;
+  border-right: 1px solid;
+}
+
+.page {
+  display: flex;
+  flex-direction: row;
+}
+
+.main-left {
+  flex-basis: 50vw;
+}
+
+.main-right {
+  flex-basis: 50vw;
+  position: sticky;
+  top: 125px;
+  height: 0;
+  padding-left: 10px;
+}
+
 .food-card {
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin: 10px 0;
-  }
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 10px 0;
   
-  input[type="number"] {
-    width: 50px;
-    margin-left: 10px;
-  }
+}
 
-  #summary {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-  }
+input[type="number"] {
+  width: 50px;
+  margin-left: 10px;
+}
 
-  #foodList {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  
+.food-list {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+#foodList {
+  list-style-type: none;
+  padding: 0;
+}
+
+#summary {
+  padding: 10px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+}

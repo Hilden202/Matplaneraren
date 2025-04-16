@@ -1,37 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matplaneraren</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
-    <form>
-        <div id="searchInput">
-            <h1>Matplaneraren</h1>
-            <input type="text" id="foodInput" placeholder="Sök efter livsmedel...">
+    <header class="header-top">
+        <form>
+            <div id="searchInput">
+                <h1>Matplaneraren</h1>
+                <input type="text" id="foodInput" placeholder="Sök efter livsmedel...">
+            </div>
+        </form>
+    </header>
+    <main class="page">
+        <!-- Nutrition Output Section -->
+        <div id="nutritionOutput" class="main-left"></div>
+<div class="main-right">
+        <!-- Foodlist Section -->
+        <div id="selectedFoodsList" class="food-list">
+            <h3>Matlista</h3>
+            <ul id="foodList"></ul>
+            <button id="clearListButton">Rensa lista</button>
         </div>
-    </form>
-    <!-- Nutrition Output Section -->
-    <div id="nutritionOutput" class="nutritionOutput"></div>
 
-    <!-- Foodlist Section -->
-    <div id="selectedFoodsList">
-        <h3>Matlista</h3>
-        <ul id="foodList"></ul>
-        <button id="clearListButton">Rensa lista</button>
-    </div>
-
-    <!-- Summary Section -->
-    <div id="summary">
-        <h3>Summering</h3>
-        <p id="totalEnergy">Total energi: 0 kcal</p>
-        <p id="totalCarbs">Totala kolhydrater: 0 g</p>
-        <p id="totalProtein">Totalt protein: 0 g</p>
-        <p id="totalFat">Totalt fett: 0 g</p>
-    </div>
-
+        <!-- Summary Section -->
+        <div id="summary">
+            <h3>Summering</h3>
+            <p id="totalEnergy">Total energi: 0 kcal</p>
+            <p id="totalCarbs">Totala kolhydrater: 0 g</p>
+            <p id="totalProtein">Totalt protein: 0 g</p>
+            <p id="totalFat">Totalt fett: 0 g</p>
+        </div>
+</div>
+    </main>
     <script src="script/foods.js"></script>
 </body>
+
 </html>
