@@ -39,12 +39,12 @@ html {
 
 
 .main-left {
-  flex-basis: 63vw;
+  flex-basis: 64vw;
   align-items: flex-start
 }
 
 .main-right {
-  flex-basis: 47vw;
+  flex-basis: 46vw;
   position: sticky;
   top: 151px;
   height: 100vh;
