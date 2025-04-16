@@ -1,4 +1,8 @@
 .header-top {
+  background-image: url("../images/foodbackground.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
   position: sticky;
   top: 0;
   background-color: white;
@@ -7,9 +11,12 @@
   border-bottom: 5px solid;
   border-left: 1px solid;
   border-right: 1px solid;
+  color: gold;
+  font-size: 20px;
 }
 
 .page {
+
   display: flex;
   flex-direction: row;
 }
@@ -39,6 +46,9 @@ input[type="number"] {
 }
 
 .food-list {
+  background-color: yellow;
+  background-size: cover;
+  background-repeat: no-repeat;
   border: 1px solid #ccc;
   padding: 10px;
   margin: 10px 0;
@@ -47,6 +57,10 @@ input[type="number"] {
 #foodList {
   list-style-type: none;
   padding: 0;
+}
+
+#foodList li {
+  margin-bottom: 12px;
 }
 
 #summary {
