@@ -33,9 +33,9 @@ html {
   box-sizing: border-box;
 }
 
-.main-left, .main-right {
+/* .main-left, .main-right {
   min-width: 0;
-}
+} */
 
 
 .main-left {
