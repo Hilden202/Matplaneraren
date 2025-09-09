@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Matplaneraren</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 </head>
 
 <body>
@@ -17,27 +20,33 @@
             </div>
         </form>
     </header>
-    <main class="page">
-        <!-- Nutrition Output Section -->
-        <div id="nutritionOutput" class="main-left"></div>
-<div class="main-right">
-        <!-- Foodlist Section -->
-        <div id="selectedFoodsList" class="food-list">
-            <h3>Matlista</h3>
-            <ul id="foodList"></ul>
-            <button id="clearListButton">Rensa lista</button>
-        </div>
+<main class="page">
+  <!-- Vänsterkolumn: Sökresultat -->
+  <div id="nutritionOutput" class="main-left"></div>
 
-        <!-- Summary Section -->
-        <div id="summary">
-            <h3>Summering</h3>
-            <p id="totalEnergy">Total energi: 0 kcal</p>
-            <p id="totalCarbs">Totala kolhydrater: 0 g</p>
-            <p id="totalFat">Totalt fett: 0 g</p>
-            <p id="totalProtein">Totalt protein: 0 g</p>
-        </div>
-</div>
-    </main>
+  <!-- Högerkolumn: Matlista + summering -->
+  <div class="main-right">
+    <div class="right-inner">
+
+      <!-- Matlistan -->
+      <div id="selectedFoodsList" class="food-list">
+        <h3>Matlista</h3>
+        <ul id="foodList"></ul>
+        <button id="clearListButton">Rensa lista</button>
+      </div>
+
+      <!-- Summering -->
+      <div id="summary">
+        <h3>Summering</h3>
+        <p id="totalEnergy">Total energi: 0 kcal</p>
+        <p id="totalCarbs">Totala kolhydrater: 0 g</p>
+        <p id="totalFat">Totalt fett: 0 g</p>
+        <p id="totalProtein">Totalt protein: 0 g</p>
+      </div>
+
+    </div>
+  </div>
+</main>
     <script src="script/foods.js"></script>
 </body>
 

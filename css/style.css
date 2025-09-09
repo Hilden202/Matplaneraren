@@ -181,3 +181,250 @@ button:hover {
   background-color: #006666;
   transform: scale(1.03);
 }
+
+.food-list-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.quantity-slider {
+  flex: 1;
+  accent-color: teal;
+}
+
+.food-amount {
+  width: 150px;
+}
+
+.adjust-button.remove {
+  background: transparent;
+  border: none;
+  color: #cc3333;
+  font-size: 20px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.adjust-button.remove:hover {
+  color: #a62828;
+}
+
+.food-card .loading {
+  font-style: italic;
+}
+
+/* Highlight av exakt träff */
+.food-card.highlight {
+  background: #fff7d1;          /* mild gul */
+  box-shadow: 0 0 0 2px #ffd24d inset;
+  transition: background-color .4s ease;
+}
+
+
+.food-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.quantity-slider {
+  flex: 1;
+  accent-color: teal;
+}
+
+.quantity-input {
+  width: 90px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.food-amount {
+  min-width: 180px;
+}
+
+/* === Modal: mängdkontroller === */
+.modal-qty {
+  display: grid;
+  grid-template-columns: auto max-content 1fr; /* Label | Number | Slider */
+  grid-template-areas: "label number slider";
+  align-items: center;
+  column-gap: 8px;      /* tajtare mellan label och fält */
+  row-gap: 10px;
+  margin: 10px 0 16px;
+}
+
+.modal-qty > label {
+  grid-area: label;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.modal-qty .quantity-input {
+  grid-area: number;
+  width: 120px;
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.modal-qty .quantity-slider {
+  grid-area: slider;
+  width: 100%;
+  display: block;
+  accent-color: teal;
+  flex: unset !important; /* neutralisera ev. global flex från listan */
+}
+
+/* Små skärmar: label + fält på rad, slider på egen rad under */
+@media (max-width: 520px) {
+  .modal-qty {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "label number"
+      "slider slider";
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+  .modal-qty .quantity-input {
+    width: 30%;     /* fyll kolumnen på små skärmar */
+    min-width: 0;
+  }
+}
+
+#summary {
+  background: #f5f5f5;
+  padding: 10px;
+  border: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+/* --- Desktop layout --- */
+.page {
+  display: flex;
+  align-items: flex-start;
+}
+
+.main-left {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.main-right {
+  flex-basis: 46vw;
+  position: sticky;
+  top: 151px;
+  height: 100vh;
+  max-height: 100vh;
+  padding-left: 10px;
+  overflow: hidden; /* ändrad från auto */
+  display: flex;
+  flex-direction: column;
+}
+
+.right-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: auto; /* 👈 Låt innehållet styra höjden */
+}
+
+#selectedFoodsList {
+  flex: 1;
+  overflow-y: auto;
+}
+
+#summary {
+  flex-shrink: 0;
+}
+
+/* --- Mobilanpassning (max 600px) --- */
+@media (max-width: 600px) {
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .page {
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  .main-left {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 55vh;
+  }
+
+  .main-right {
+    width: 100%;
+    flex-basis: auto;
+    min-width: 0;
+    padding-left: 0;
+    position: static;
+    display: flex;
+    flex-direction: column;
+    height: 45vh;
+    box-sizing: border-box;
+  }
+
+.right-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: auto;      /* får full höjd från .main-right */
+}
+
+
+#selectedFoodsList {
+  overflow-y: auto;
+  max-height: 100%;           /* säkerhetsgräns */
+  flex-grow: 1;               /* låt den växa vid behov */
+  flex-shrink: 1;             /* låt den krympa om lite utrymme behövs */
+}
+
+
+#summary {
+  flex-shrink: 0;
+  padding: 10px;
+  max-width: 100%;
+  box-sizing: border-box;
+  border-top: 1px solid #ccc;
+}
+
+
+  #foodList,
+  .food-list-item,
+  .quantity-input,
+  input[type="number"],
+  .modal-content {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .food-list-item {
+    flex-wrap: wrap;
+  }
+
+  .food-amount {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .quantity-slider {
+    width: 100%;
+  }
+
+  .adjust-button.remove {
+    flex-shrink: 0;
+  }
+}

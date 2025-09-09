@@ -3,10 +3,36 @@ const foodList = document.getElementById("foodList");
 const foodListContainer = document.getElementById("foodListContainer");
 const nutritionOutput = document.getElementById("nutritionOutput");
 const searchInput = document.getElementById("foodInput");
+const DEFAULT_SLIDER_MAX = 1000;
+
 
 let foodData = [];
 let selectedFoods = [];
 let currentSearchVersion = 0;
+let lastSearchTerm = "";
+let currentAbortController = null;
+
+// Hjälp-funktion: jämför två namn utifrån ett sökord
+function compareBySearch(a, b, term) {
+  const t = term.toLowerCase();
+  const an = a.namn.toLowerCase();
+  const bn = b.namn.toLowerCase();
+
+  const aExact = an === t;
+  const bExact = bn === t;
+  if (aExact !== bExact) return bExact - aExact; // exact match först
+
+  const aStarts = an.startsWith(t);
+  const bStarts = bn.startsWith(t);
+  if (aStarts !== bStarts) return bStarts - aStarts; // börjar med term härnäst
+
+  const ai = an.indexOf(t);
+  const bi = bn.indexOf(t);
+  if (ai !== bi) return ai - bi; // lägre index först
+
+  if (an.length !== bn.length) return an.length - bn.length; // kortare namn först
+  return an.localeCompare(bn, 'sv'); // stabil alfabetisk ordning (svenska)
+}
 
 const summary = {
     totalEnergy: 0,
@@ -67,48 +93,97 @@ fetch(url)
     });
 
 searchInput.addEventListener("input", function () {
+    lastSearchTerm = searchInput.value.trim().toLowerCase();
     const searchTerm = searchInput.value.toLowerCase();
+
+    // Avbryt tidigare sökning
+    if (currentAbortController) currentAbortController.abort();
+    currentAbortController = new AbortController();
+    const signal = currentAbortController.signal;
+
     currentSearchVersion++;
     const thisVersion = currentSearchVersion;
 
     const filteredData = foodData
         .filter(item => item.namn.toLowerCase().includes(searchTerm))
-        .sort((a, b) => {
-            const aIndex = a.namn.toLowerCase().indexOf(searchTerm);
-            const bIndex = b.namn.toLowerCase().indexOf(searchTerm);
-            return aIndex - bIndex;
-        });
+        .sort((a, b) => compareBySearch(a, b, searchTerm));
 
-    renderFoodList(filteredData, thisVersion);
+    renderFoodList(filteredData, thisVersion, signal);
 
-    // ⬇️ Scrolla till första food-card efter render
     setTimeout(() => {
         const firstCard = document.querySelector(".food-card");
-        if (firstCard) {
-            firstCard.scrollIntoView({ behavior: "smooth" });
-        }
+        if (firstCard) firstCard.scrollIntoView({ behavior: "smooth" });
     }, 200);
 });
+
 
 searchInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
         event.preventDefault();
+        lastSearchTerm = searchInput.value.trim().toLowerCase();
+
+        const searchTerm = searchInput.value.toLowerCase();
+
+        if (currentAbortController) currentAbortController.abort();
+        currentAbortController = new AbortController();
+        const signal = currentAbortController.signal;
+
+        currentSearchVersion++;
+        const thisVersion = currentSearchVersion;
+
+        const filteredData = foodData
+            .filter(item => item.namn.toLowerCase().includes(searchTerm))
+            .sort((a, b) => compareBySearch(a, b, searchTerm));
+
+        renderFoodList(filteredData, thisVersion, signal);
+
+        setTimeout(() => {
+            const firstCard = document.querySelector(".food-card");
+            if (firstCard) firstCard.scrollIntoView({ behavior: "smooth" });
+        }, 200);
     }
 });
 
-
-async function renderFoodList(data, version = null) {
+async function renderFoodList(data, version = null, signal = null) {
     nutritionOutput.innerHTML = "";
 
+    // Skelettkort direkt
     for (const food of data) {
-        // Om en nyare sökning startats – avbryt denna render
-        if (version !== null && version !== currentSearchVersion) return;
+        const card = document.createElement("div");
+        card.className = "food-card";
+        card.id = `food-${food.id}`;
+        card.innerHTML =
+          `<h3>${food.namn}</h3>
+           <p class="loading">Laddar näringsvärden...</p>
+           <button class="add-button" disabled>Lägg till</button>`;
 
+        // highlight direkt om exakt match
+        if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
+            card.classList.add("highlight");
+        }
+        nutritionOutput.appendChild(card);
+    }
+
+    // Hjälpare för klassificering med signal
+    const fetchClassificationWithSignal = async (id, s) => {
+        const url = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${id}/klassificeringar?sprak=1`;
+        const res = await fetch(url, s ? { signal: s } : undefined);
+        const data = await res.json();
+        return (data && data.length > 0) ? data[0].namn : "Ingen klassificering tillgänglig";
+    };
+
+    // Fyll på korten asynkront, utan att rubba ordningen
+    data.forEach(async (food) => {
         const nutritionUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${food.id}/naringsvarden?sprak=1`;
 
         try {
-            const response = await fetch(nutritionUrl);
-            const nutritionData = await response.json();
+            const [nutritionData, groupName] = await Promise.all([
+                fetch(nutritionUrl, signal ? { signal } : undefined).then(r => r.json()),
+                fetchClassificationWithSignal(food.id, signal)
+            ]);
+
+            // Om sökningen är utdaterad: avbryt uppdatering
+            if (version !== null && version !== currentSearchVersion) return;
 
             const getEnergyKcal = () => {
                 const item = nutritionData.find(n =>
@@ -117,7 +192,6 @@ async function renderFoodList(data, version = null) {
                 );
                 return item ? item.varde : 0;
             };
-
             const getValue = (name) => {
                 const item = nutritionData.find(n =>
                     n.namn.toLowerCase().includes(name.toLowerCase())
@@ -125,45 +199,54 @@ async function renderFoodList(data, version = null) {
                 return item ? item.varde : 0;
             };
 
-            const groupName = await fetchClassification(food.id);
             const energiKcal = getEnergyKcal();
             const kolhydrater = getValue("kolhydrater");
             const fett = getValue("fett");
             const protein = getValue("protein");
 
+            const card = document.getElementById(`food-${food.id}`);
+            if (!card) return;
 
-            // Kolla igen innan vi renderar
-            if (version !== null && version !== currentSearchVersion) return;
+            card.innerHTML =
+              `<h3>${food.namn}</h3>
+               <p><strong>Grupp:</strong> ${groupName}</p>
+               <p><strong>Energi:</strong> ${energiKcal} kcal</p>
+               <p><strong>Kolhydrater:</strong> ${kolhydrater} g</p>
+               <p><strong>Fett:</strong> ${fett} g</p>
+               <p><strong>Protein:</strong> ${protein} g</p>
+               <button class="add-button"
+                       data-id="${food.id}"
+                       data-name="${food.namn}"
+                       data-group="${groupName}"
+                       data-energy="${energiKcal}"
+                       data-carbs="${kolhydrater}"
+                       data-fat="${fett}"
+                       data-protein="${protein}">
+                   Lägg till
+               </button>`;
 
-            const div = document.createElement("div");
-            div.className = "food-card";
-            div.innerHTML =
-                "<h3>" + food.namn + "</h3>" +
-                "<p><strong>Grupp:</strong> " + groupName + "</p>" +
-                "<p><strong>Energi:</strong> " + energiKcal + " kcal</p>" +
-                "<p><strong>Kolhydrater:</strong> " + kolhydrater + " g</p>" +
-                "<p><strong>Fett:</strong> " + fett + " g</p>" +
-                "<p><strong>Protein:</strong> " + protein + " g</p>" +
-                "<button class='add-button' " +
-                "data-id='" + food.id + "' " +
-                "data-name='" + food.namn + "' " +
-                "data-group='" + groupName + "' " +
-                "data-energy='" + energiKcal + "' " +
-                "data-carbs='" + kolhydrater + "' " +
-                "data-fat='" + fett + "' " +
-                "data-protein='" + protein + "'>Lägg till</button>";
+               if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
+                    card.classList.add("highlight");
+                    setTimeout(() => card.classList.remove("highlight"), 1800);
+}
 
-            nutritionOutput.appendChild(div);
-
-            const button = div.querySelector(".add-button");
+            const button = card.querySelector(".add-button");
+            button.disabled = false;
             button.addEventListener("click", function () {
                 showFoodModal(food, groupName, energiKcal, kolhydrater, fett, protein);
             });
 
-        } catch (error) {
-            console.error("Fel vid hämtning av näringsvärden för:", food.namn, error);
+        } catch (err) {
+            // Avbrutet? Gör inget, visa inte fel.
+            if (err.name === 'AbortError') return;
+            if (version !== null && version !== currentSearchVersion) return;
+
+            const card = document.getElementById(`food-${food.id}`);
+            if (!card) return;
+            const loading = card.querySelector(".loading");
+            if (loading) loading.textContent = "Kunde inte hämta näringsvärden.";
         }
-    }
+    });
 }
 
 function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = null) {
@@ -186,6 +269,7 @@ function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = nu
     }
 
     updateSelectedFoodsList();
+    adjustSelectedListHeight();
     updateSummary();
 }
 
@@ -201,28 +285,58 @@ function updateSelectedFoodsList() {
             ? item.name.substring(0, maxLength - 3) + "..."
             : item.name;
 
+        const sliderMax = Math.max(DEFAULT_SLIDER_MAX, item.quantity);
+
         foodList.innerHTML +=
-            "<li class='food-list-item'>" +
-            "<button class='adjust-button' onclick='removeFood(" + i + ")'> x </button>" +
-            "<button class='adjust-button' onclick='decreaseQuantity(" + i + ")'> - </button>" +
-            "<button class='adjust-button' onclick='increaseQuantity(" + i + ")'> + </button>" +
-            "<span class='food-amount'>" + item.quantity + " g " + trimmedName + "</span>" +
-            "</li>";
+        `<li class="food-list-item">
+            <input type="range" min="0" max="${sliderMax}" step="10"
+                    value="${item.quantity}"
+                    class="quantity-slider"
+                    oninput="onSlider(${i}, this)">
+            <input type="number" min="0" step="1"
+                    value="${item.quantity}"
+                    class="quantity-input"
+                    oninput="onNumber(${i}, this)">
+            <span class="food-amount">${item.quantity} g ${trimmedName}</span>
+            <button class="adjust-button remove" onclick="removeFood(${i})" title="Ta bort">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </li>`;
+
     }
 
     foodList.innerHTML += "</ul>";
     updateSummary();
 }
 
+function updateQuantity(index, newValue, labelElement) {
+  const quantity = parseInt(newValue, 10);
+  selectedFoods[index].quantity = quantity;
+
+  // Uppdatera direkt etiketten som visas
+  const name = selectedFoods[index].name;
+  const maxLength = 35;
+  const trimmedName = name.length > maxLength
+      ? name.substring(0, maxLength - 3) + "..."
+      : name;
+
+  labelElement.textContent = `${quantity} g ${trimmedName}`;
+
+  // Uppdatera summeringen direkt
+  updateSummary();
+}
+
 
 function removeFood(index) {
     selectedFoods.splice(index, 1);
     updateSelectedFoodsList();
+    adjustSelectedListHeight();
 }
 
 function increaseQuantity(index) {
     selectedFoods[index].quantity += 10;
     updateSelectedFoodsList();
+    adjustSelectedListHeight();
 }
 
 function decreaseQuantity(index) {
@@ -231,6 +345,7 @@ function decreaseQuantity(index) {
         selectedFoods.splice(index, 1);
     }
     updateSelectedFoodsList();
+    adjustSelectedListHeight();
 }
 
 function updateSummary() {
@@ -256,25 +371,90 @@ function updateSummary() {
     document.getElementById("totalProtein").textContent = "Totalt protein: " + totalProtein.toFixed(1) + " g";
 }
 
+function syncRow(index, qty, numberEl, sliderEl, labelEl) {
+  // 1) Normalisera och spara
+  const q = Math.max(0, isNaN(qty) ? 0 : Math.round(qty));
+  selectedFoods[index].quantity = q;
+
+  // 2) Håll kontrollerna i synk
+  if (numberEl && numberEl.value != q) numberEl.value = q;
+  if (sliderEl) {
+    const max = parseInt(sliderEl.max, 10) || 0;
+    if (q > max) sliderEl.max = q;   // låt slidern “växa” med värdet
+    if (sliderEl.value != q) sliderEl.value = q;
+  }
+
+  // 3) Uppdatera etiketten
+  const name = selectedFoods[index].name;
+  const maxLength = 35;
+  const trimmedName = name.length > maxLength ? name.substring(0, maxLength - 3) + "..." : name;
+  if (labelEl) labelEl.textContent = `${q} g ${trimmedName}`;
+
+  // 4) Uppdatera summeringen direkt
+  updateSummary();
+}
+
+function onSlider(index, sliderEl) {
+  const li = sliderEl.closest("li");
+  const numberEl = li.querySelector(".quantity-input");
+  const labelEl  = li.querySelector(".food-amount");
+  syncRow(index, parseInt(sliderEl.value, 10), numberEl, sliderEl, labelEl);
+}
+
+function onNumber(index, numberEl) {
+  const li = numberEl.closest("li");
+  const sliderEl = li.querySelector(".quantity-slider");
+  const labelEl  = li.querySelector(".food-amount");
+  syncRow(index, parseInt(numberEl.value, 10), numberEl, sliderEl, labelEl);
+}
+
+
 function showFoodModal(food, group, energy, carbs, fat, protein) {
   const modal = document.getElementById("foodModal");
   const body = document.getElementById("modalBody");
-  body.innerHTML = `
+    body.innerHTML = `
     <h2>${food.namn}</h2>
     <p><strong>Grupp:</strong> ${group}</p>
     <p><strong>Energi:</strong> ${energy} kcal</p>
     <p><strong>Kolhydrater:</strong> ${carbs} g</p>
     <p><strong>Fett:</strong> ${fat} g</p>
     <p><strong>Protein:</strong> ${protein} g</p>
-    <label>Gram:</label>
-    <input type="number" id="modalQuantity" value="100" min="1">
+
+    <div class="modal-qty">
+        <label for="modalQuantityNumber">Gram:</label>
+        <input type="number" id="modalQuantityNumber" class="quantity-input" min="0" step="1" value="100">
+        <input type="range" id="modalQuantitySlider" class="quantity-slider" min="0" step="10" max="${DEFAULT_SLIDER_MAX}" value="100">
+    </div>
+
     <button id="modalAddBtn">Lägg till</button>
-  `;
-  document.getElementById("modalAddBtn").onclick = () => {
-    const q = parseInt(document.getElementById("modalQuantity").value, 10) || 100;
+    `;
+
+    const num = document.getElementById("modalQuantityNumber");
+    const sld = document.getElementById("modalQuantitySlider");
+
+    // live-synk mellan inputs
+    const syncModal = (q) => {
+    const val = Math.max(0, isNaN(q) ? 0 : Math.round(q));
+    if (parseInt(num.value,10) !== val) num.value = val;
+    if (parseInt(sld.value,10) !== val) sld.value = val;
+    };
+
+    num.addEventListener("input", () => {
+    // låt slidern växa om man skriver in större värde än max
+    const q = parseInt(num.value, 10) || 0;
+    if (q > parseInt(sld.max,10)) sld.max = q;
+    syncModal(q);
+    });
+
+    sld.addEventListener("input", () => syncModal(parseInt(sld.value, 10) || 0));
+
+
+    document.getElementById("modalAddBtn").onclick = () => {
+    const q = parseInt(num.value, 10) || 0;
     addFood(food.id, food.namn, energy, carbs, fat, protein, q);
     closeFoodModal();
-  };
+    };
+
   const span = modal.querySelector(".close");
   span.onclick = closeFoodModal;
   window.onclick = (e) => e.target === modal && closeFoodModal();
@@ -289,7 +469,25 @@ function closeFoodModal() {
 document.getElementById("clearListButton").addEventListener("click", function () {
     selectedFoods = [];
     updateSelectedFoodsList();
+    adjustSelectedListHeight();
     updateSummary();
 });
 
 renderFoodList(foodData);
+
+function adjustSelectedListHeight() {
+  const container = document.querySelector(".right-inner");
+  const list = document.getElementById("selectedFoodsList");
+  const summary = document.getElementById("summary");
+
+  const maxListHeight = container.parentElement.clientHeight - summary.offsetHeight - 20;
+
+  if (list.scrollHeight > maxListHeight) {
+    list.style.maxHeight = maxListHeight + "px";
+    list.style.overflowY = "auto";
+  } else {
+    list.style.maxHeight = "none";
+    list.style.overflowY = "hidden";
+  }
+}
+
