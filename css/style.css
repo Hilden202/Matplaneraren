@@ -58,6 +58,7 @@ html {
 
 
 .food-card {
+  scroll-margin-top: 185px; 
   border: 1px solid #ccc;
   box-sizing: border-box;
   padding: 10px;

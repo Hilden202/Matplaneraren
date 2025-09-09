@@ -66,7 +66,6 @@ fetch(url)
         console.error("Fel vid hämtning av data:", error);
     });
 
-
 searchInput.addEventListener("input", function () {
     const searchTerm = searchInput.value.toLowerCase();
     currentSearchVersion++;
@@ -81,9 +80,15 @@ searchInput.addEventListener("input", function () {
         });
 
     renderFoodList(filteredData, thisVersion);
+
+    // ⬇️ Scrolla till första food-card efter render
+    setTimeout(() => {
+        const firstCard = document.querySelector(".food-card");
+        if (firstCard) {
+            firstCard.scrollIntoView({ behavior: "smooth" });
+        }
+    }, 200);
 });
-
-
 
 searchInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
