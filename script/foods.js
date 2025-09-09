@@ -6,6 +6,7 @@ const searchInput = document.getElementById("foodInput");
 
 let foodData = [];
 let selectedFoods = [];
+let currentSearchVersion = 0;
 
 const summary = {
     totalEnergy: 0,
@@ -68,12 +69,21 @@ fetch(url)
 
 searchInput.addEventListener("input", function () {
     const searchTerm = searchInput.value.toLowerCase();
-    const filteredData = foodData.filter(function (item) {
-        return item.namn.toLowerCase().includes(searchTerm);
-    });
+    currentSearchVersion++;
+    const thisVersion = currentSearchVersion;
 
-    renderFoodList(filteredData);
+    const filteredData = foodData
+        .filter(item => item.namn.toLowerCase().includes(searchTerm))
+        .sort((a, b) => {
+            const aIndex = a.namn.toLowerCase().indexOf(searchTerm);
+            const bIndex = b.namn.toLowerCase().indexOf(searchTerm);
+            return aIndex - bIndex;
+        });
+
+    renderFoodList(filteredData, thisVersion);
 });
+
+
 
 searchInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
@@ -82,10 +92,13 @@ searchInput.addEventListener("keydown", function (event) {
 });
 
 
-function renderFoodList(data) {
+async function renderFoodList(data, version = null) {
     nutritionOutput.innerHTML = "";
 
-    data.forEach(async function (food) {
+    for (const food of data) {
+        // Om en nyare sökning startats – avbryt denna render
+        if (version !== null && version !== currentSearchVersion) return;
+
         const nutritionUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${food.id}/naringsvarden?sprak=1`;
 
         try {
@@ -102,8 +115,11 @@ function renderFoodList(data) {
             const kolhydrater = getValue("kolhydrater");
             const fett = getValue("fett");
             const protein = getValue("protein");
-            const div = document.createElement("div");
 
+            // Kolla igen innan vi renderar
+            if (version !== null && version !== currentSearchVersion) return;
+
+            const div = document.createElement("div");
             div.className = "food-card";
             div.innerHTML =
                 "<h3>" + food.namn + "</h3>" +
@@ -112,8 +128,6 @@ function renderFoodList(data) {
                 "<p><strong>Kolhydrater:</strong> " + kolhydrater + " g</p>" +
                 "<p><strong>Fett:</strong> " + fett + " g</p>" +
                 "<p><strong>Protein:</strong> " + protein + " g</p>" +
-                "<label for='quantity" + food.id + "'>Gram:</label>" +
-                "<input type='number' id='quantity" + food.id + "' value='100' min='1'>" +
                 "<button class='add-button' " +
                 "data-id='" + food.id + "' " +
                 "data-name='" + food.namn + "' " +
@@ -127,28 +141,27 @@ function renderFoodList(data) {
 
             const button = div.querySelector(".add-button");
             button.addEventListener("click", function () {
-                addFood(food.id, food.namn, energiKcal, kolhydrater, fett, protein);
+                showFoodModal(food, groupName, energiKcal, kolhydrater, fett, protein);
             });
-
 
         } catch (error) {
             console.error("Fel vid hämtning av näringsvärden för:", food.namn, error);
         }
-    });
+    }
 }
 
-function addFood(id, namn, energiKcal, kolhydrater, fett, protein) {
-    const quantity = parseInt(document.getElementById("quantity" + id).value, 10) || 100;
+function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = null) {
+    const qty = quantity !== null ? quantity : (parseInt(document.getElementById("quantity" + id).value, 10) || 100);
 
     const existingItem = selectedFoods.find(item => item.id === id);
 
     if (existingItem) {
-        existingItem.quantity += quantity;
+        existingItem.quantity += qty;
     } else {
         selectedFoods.push({
             id: id,
             name: namn,
-            quantity: quantity,
+            quantity: qty,
             energiKcal: energiKcal,
             kolhydrater: kolhydrater,
             fett: fett,
@@ -226,6 +239,36 @@ function updateSummary() {
     document.getElementById("totalFat").textContent = "Totalt fett: " + totalFat.toFixed(1) + " g";
     document.getElementById("totalProtein").textContent = "Totalt protein: " + totalProtein.toFixed(1) + " g";
 }
+
+function showFoodModal(food, group, energy, carbs, fat, protein) {
+  const modal = document.getElementById("foodModal");
+  const body = document.getElementById("modalBody");
+  body.innerHTML = `
+    <h2>${food.namn}</h2>
+    <p><strong>Grupp:</strong> ${group}</p>
+    <p><strong>Energi:</strong> ${energy} kcal</p>
+    <p><strong>Kolhydrater:</strong> ${carbs} g</p>
+    <p><strong>Fett:</strong> ${fat} g</p>
+    <p><strong>Protein:</strong> ${protein} g</p>
+    <label>Gram:</label>
+    <input type="number" id="modalQuantity" value="100" min="1">
+    <button id="modalAddBtn">Lägg till</button>
+  `;
+  document.getElementById("modalAddBtn").onclick = () => {
+    const q = parseInt(document.getElementById("modalQuantity").value, 10) || 100;
+    addFood(food.id, food.namn, energy, carbs, fat, protein, q);
+    closeFoodModal();
+  };
+  const span = modal.querySelector(".close");
+  span.onclick = closeFoodModal;
+  window.onclick = (e) => e.target === modal && closeFoodModal();
+  modal.style.display = "block";
+}
+
+function closeFoodModal() {
+  document.getElementById("foodModal").style.display = "none";
+}
+
 
 document.getElementById("clearListButton").addEventListener("click", function () {
     selectedFoods = [];
