@@ -105,16 +105,27 @@ async function renderFoodList(data, version = null) {
             const response = await fetch(nutritionUrl);
             const nutritionData = await response.json();
 
+            const getEnergyKcal = () => {
+                const item = nutritionData.find(n =>
+                    n.namn.toLowerCase().includes("energi") &&
+                    n.enhet && n.enhet.toLowerCase().includes("kcal")
+                );
+                return item ? item.varde : 0;
+            };
+
             const getValue = (name) => {
-                const item = nutritionData.find(n => n.namn.toLowerCase().includes(name.toLowerCase()));
+                const item = nutritionData.find(n =>
+                    n.namn.toLowerCase().includes(name.toLowerCase())
+                );
                 return item ? item.varde : 0;
             };
 
             const groupName = await fetchClassification(food.id);
-            const energiKcal = getValue("energi");
+            const energiKcal = getEnergyKcal();
             const kolhydrater = getValue("kolhydrater");
             const fett = getValue("fett");
             const protein = getValue("protein");
+
 
             // Kolla igen innan vi renderar
             if (version !== null && version !== currentSearchVersion) return;
