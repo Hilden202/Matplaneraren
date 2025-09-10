@@ -613,8 +613,9 @@ function showFoodModal(food, group, energy, carbs, fat, protein) {
     closeFoodModal();
   };
 
-  // Öppna (OBS: inga overflow-lås här)
-  modal.style.display = "block";
+    modal.classList.add('open');
+    modal.removeAttribute('hidden');
+    modal.setAttribute('aria-hidden','false');
 
   // Stäng med kryss
   modal.querySelector(".close").onclick = closeFoodModal;
@@ -635,7 +636,9 @@ function closeFoodModal() {
   const modal = document.getElementById("foodModal");
   if (!modal) return;
 
-  modal.style.display = "none";
+  modal.classList.remove('open');
+  modal.setAttribute('hidden','');
+  modal.setAttribute('aria-hidden','true');
   modal.removeEventListener('click', onModalBackdropClick);
   modal.removeEventListener('touchstart', onModalBackdropClick);
 

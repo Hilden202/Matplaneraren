@@ -23,14 +23,14 @@ html {
   --header-meta-h: 52px;   /* reservyta för badge + ikon */  
   --header-h: 180px; /* fallback; JS sets the real value */
     /* Modalplacering – justera här istället för margin på .modal-content */
-  --modal-top: 15vh;              /* flytta ned/upp modalen */
+  --modal-top: 30vh;              /* flytta ned/upp modalen */
   --modal-bottom: 6vh;
 }
 
 /* Mobil: lägg modalen ännu lite längre ned + ta höjd för safe area */
 @media (max-width: 520px){
   :root{
-    --modal-top: 6vh;
+    --modal-top: 30vh;
     --modal-bottom: max(7vh, env(safe-area-inset-bottom));
   }
 }
@@ -203,6 +203,8 @@ h3 {
   font-size: 25px;
 }
 
+[hidden] { display: none !important; }
+
 /* Overlay – placera innehållet med flex + padding */
 .modal{
   display: none;                  /* visas via JS */
@@ -210,9 +212,9 @@ h3 {
   inset: 0;
   z-index: 200;
   background: rgba(0,0,0,.45);
+  display: none;
 
   /* Nyckeln: flex + padding istället för margin på .modal-content */
-  display: flex;
   align-items: flex-start;        /* startar under toppen */
   justify-content: center;        /* centrera horisontellt */
   padding: var(--modal-top) 12px var(--modal-bottom);
@@ -221,11 +223,12 @@ h3 {
   -webkit-overflow-scrolling: touch;
 }
 
+.modal.open { display: flex; }
+
 /* Stabil viewport-höjd där det stöds */
 @supports (height: 100dvh){
   .modal{ min-height: 100dvh; }
 }
-
 
 /* Själva rutan */
 .modal-content{
@@ -234,14 +237,13 @@ h3 {
   max-width: 600px;
   border-radius: 12px;
   padding: 20px;
-  margin: 0;                      /* viktigt: nollställ margin */
+  margin: 0 !important; 
 }
-
 
 /* På små skärmar: ännu lite längre ner och lite sidomarginal */
 @media (max-width: 520px) {
   .modal-content {
-    margin: 24vh 12px max(7vh, env(safe-area-inset-bottom)) !important; /* ⬅ 24vh på topp */
+    margin: 24vh 12px max(7vh, env(safe-area-inset-bottom)); /* ⬅ 24vh på topp */
   }
 }
 
