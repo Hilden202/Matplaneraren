@@ -18,12 +18,34 @@ drawerBackdrop?.addEventListener("click", () => {
 const clearBtn = document.getElementById("clearSearch");
 if (clearBtn) {
   clearBtn.addEventListener("click", () => {
+    // 0) Fånga ett bra scrollmål innan DOM ändras
+    const firstCard = document.querySelector(".food-card");
+    const headerH = parseInt(
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--header-h')
+    ) || 0;
+
+    // Scrolla till översta kortet om det finns, annars till resultatcontainern
+    const targetY = ((firstCard
+        ? firstCard.getBoundingClientRect().top + window.scrollY
+        : nutritionOutput.offsetTop) - Math.max(0, headerH - 8));
+
+    // 1) Rensa fältet direkt (snappy UI)
     searchInput.value = "";
+    clearBtn.style.visibility = "hidden";
     searchInput.focus();
-    // trigga befintlig söklogik
-    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+    // 2) Scrolla med nuvarande layout kvar
+    window.scrollTo({ top: targetY, behavior: "smooth" });
+
+    // 3) Töm resultaten i nästa frame (så scrollen hinner börja)
+    requestAnimationFrame(() => {
+      clearTimeout(inputDebounce);
+      doSearch(""); // snabb-töm: inga fetch/render av kort
+    });
   });
 }
+
 
 // (valfritt) Stäng även på ESC
 document.addEventListener("keydown", (e) => {
@@ -109,6 +131,7 @@ let selectedFoods = [];
 let currentSearchVersion = 0;
 let lastSearchTerm = "";
 let currentAbortController = null;
+let inputDebounce = null;
 
 // Hjälp-funktion: jämför två namn utifrån ett sökord
 function compareBySearch(a, b, term) {
@@ -190,56 +213,68 @@ fetch(url)
         console.error("Fel vid hämtning av data:", error);
     });
 
-searchInput.addEventListener("input", function () {
-    lastSearchTerm = searchInput.value.trim().toLowerCase();
-    const searchTerm = searchInput.value.toLowerCase();
+function scrollToResultsTop() {
+  // Om .main-left skrollar (overflow-y:auto), skrolla den.
+  const left = document.querySelector('.main-left');
+  if (left && left.scrollHeight > left.clientHeight) {
+    if (left.scrollTop < 120) return;
+    left.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  // Annars: skrolla fönstret
+  if (window.scrollY < 120) return;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-    // Avbryt tidigare sökning
+function doSearch(rawTerm) {
+  const searchTerm = (rawTerm || "").toLowerCase();
+  lastSearchTerm = searchTerm.trim();
+
+  // Tomt fält -> visa full lista igen
+  if (!lastSearchTerm) {
     if (currentAbortController) currentAbortController.abort();
-    currentAbortController = new AbortController();
-    const signal = currentAbortController.signal;
-
     currentSearchVersion++;
-    const thisVersion = currentSearchVersion;
+    renderFoodList(foodData, currentSearchVersion, null);
+    scrollToResultsTop();
+    return;
+  }
 
-    const filteredData = foodData
-        .filter(item => item.namn.toLowerCase().includes(searchTerm))
-        .sort((a, b) => compareBySearch(a, b, searchTerm));
+  // Avbryt tidigare sökning
+  if (currentAbortController) currentAbortController.abort();
+  currentAbortController = new AbortController();
+  const signal = currentAbortController.signal;
 
-    renderFoodList(filteredData, thisVersion, signal);
+  currentSearchVersion++;
+  const thisVersion = currentSearchVersion;
 
-    setTimeout(() => {
-        const firstCard = document.querySelector(".food-card");
-        if (firstCard) firstCard.scrollIntoView({ behavior: "smooth" });
-    }, 200);
+  const filteredData = foodData
+    .filter(item => item.namn.toLowerCase().includes(searchTerm))
+    .sort((a, b) => compareBySearch(a, b, searchTerm));
+
+  renderFoodList(filteredData, thisVersion, signal);
+ // Efter att listan rendererats: hoppa upp till resultaten om vi är långt ner
+ scrollToResultsTop();
+  // Ta bort auto-scroll för att undvika “ryck” vid snabb skrivning
+  // (behåll om du verkligen vill ha beteendet)
+  // setTimeout(() => { ... }, 200);
+}
+
+// Init: visa/dölj kryss
+if (clearBtn) clearBtn.style.visibility = searchInput.value ? "visible" : "hidden";
+
+searchInput.addEventListener("input", function () {
+  const term = searchInput.value;
+  if (clearBtn) clearBtn.style.visibility = term ? "visible" : "hidden";
+  clearTimeout(inputDebounce);
+  inputDebounce = setTimeout(() => doSearch(term), 150); // 150ms debounce
 });
 
-
 searchInput.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        lastSearchTerm = searchInput.value.trim().toLowerCase();
-
-        const searchTerm = searchInput.value.toLowerCase();
-
-        if (currentAbortController) currentAbortController.abort();
-        currentAbortController = new AbortController();
-        const signal = currentAbortController.signal;
-
-        currentSearchVersion++;
-        const thisVersion = currentSearchVersion;
-
-        const filteredData = foodData
-            .filter(item => item.namn.toLowerCase().includes(searchTerm))
-            .sort((a, b) => compareBySearch(a, b, searchTerm));
-
-        renderFoodList(filteredData, thisVersion, signal);
-
-        setTimeout(() => {
-            const firstCard = document.querySelector(".food-card");
-            if (firstCard) firstCard.scrollIntoView({ behavior: "smooth" });
-        }, 200);
-    }
+  if (event.key === "Enter") {
+    event.preventDefault();
+    clearTimeout(inputDebounce);
+    doSearch(searchInput.value);
+  }
 });
 
 async function renderFoodList(data, version = null, signal = null) {
