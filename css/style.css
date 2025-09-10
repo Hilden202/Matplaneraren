@@ -658,3 +658,35 @@ button:not(.clear-btn):hover{
     border-radius: 7px;
   }
 }
+
+/* Kortet blir tydligt klickbart */
+.food-card { cursor: pointer; transition: box-shadow .15s ease; }
+.food-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.food-card:focus { outline: 3px solid rgba(0,128,128,.35); outline-offset: 2px; }
+
+/* Kortet ska kännas klickbart */
+.food-card {
+  cursor: pointer;
+  transition: box-shadow .15s ease, transform .05s ease;
+}
+.food-card:hover {
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+  transform: translateY(-1px);
+}
+.food-card:active { transform: translateY(0); }
+.food-card:focus { outline: none; }
+.food-card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0,128,128,.35);
+}
+
+/* Modalens knapp – fullbredd på mobil */
+#modalAddBtn { margin-top: 10px; }
+@media (max-width: 768px) {
+  #modalAddBtn {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
+}

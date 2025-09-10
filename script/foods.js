@@ -278,100 +278,104 @@ searchInput.addEventListener("keydown", function (event) {
 });
 
 async function renderFoodList(data, version = null, signal = null) {
-    nutritionOutput.innerHTML = "";
+  nutritionOutput.innerHTML = "";
 
-    // Skelettkort direkt
-    for (const food of data) {
-        const card = document.createElement("div");
-        card.className = "food-card";
-        card.id = `food-${food.id}`;
-        card.innerHTML =
-          `<h3>${food.namn}</h3>
-           <p class="loading">Laddar näringsvärden...</p>
-           <button class="add-button" disabled>Lägg till</button>`;
-
-        // highlight direkt om exakt match
-        if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
-            card.classList.add("highlight");
-        }
-        nutritionOutput.appendChild(card);
+  // Skelettkort
+  for (const food of data) {
+    const card = document.createElement("div");
+    card.className = "food-card";
+    card.id = `food-${food.id}`;
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    card.innerHTML = `
+      <h3>${food.namn}</h3>
+      <p class="loading">Laddar näringsvärden...</p>
+    `;
+    if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
+      card.classList.add("highlight");
     }
+    nutritionOutput.appendChild(card);
+  }
 
-    // Hjälpare för klassificering med signal
-    const fetchClassificationWithSignal = async (id, s) => {
-        const url = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${id}/klassificeringar?sprak=1`;
-        const res = await fetch(url, s ? { signal: s } : undefined);
-        const data = await res.json();
-        return (data && data.length > 0) ? data[0].namn : "Ingen klassificering tillgänglig";
-    };
+  // Hjälpare för klassificering
+  const fetchClassificationWithSignal = async (id, s) => {
+    const url = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${id}/klassificeringar?sprak=1`;
+    const res = await fetch(url, s ? { signal: s } : undefined);
+    const data = await res.json();
+    return (data && data.length > 0) ? data[0].namn : "Ingen klassificering tillgänglig";
+  };
 
-    // Fyll på korten asynkront, utan att rubba ordningen
-    data.forEach(async (food) => {
-        const nutritionUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${food.id}/naringsvarden?sprak=1`;
+  // Fyll korten
+  data.forEach(async (food) => {
+    const nutritionUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${food.id}/naringsvarden?sprak=1`;
+    try {
+      const [nutritionData, groupName] = await Promise.all([
+        fetch(nutritionUrl, signal ? { signal } : undefined).then(r => r.json()),
+        fetchClassificationWithSignal(food.id, signal)
+      ]);
 
-        try {
-            const [nutritionData, groupName] = await Promise.all([
-                fetch(nutritionUrl, signal ? { signal } : undefined).then(r => r.json()),
-                fetchClassificationWithSignal(food.id, signal)
-            ]);
+      if (version !== null && version !== currentSearchVersion) return;
 
-            // Om sökningen är utdaterad: avbryt uppdatering
-            if (version !== null && version !== currentSearchVersion) return;
+      const getEnergyKcal = () => {
+        const item = nutritionData.find(n =>
+          n.namn.toLowerCase().includes("energi") &&
+          n.enhet && n.enhet.toLowerCase().includes("kcal")
+        );
+        return item ? item.varde : 0;
+      };
+      const getValue = (name) => {
+        const item = nutritionData.find(n =>
+          n.namn.toLowerCase().includes(name.toLowerCase())
+        );
+        return item ? item.varde : 0;
+      };
 
-            const getEnergyKcal = () => {
-                const item = nutritionData.find(n =>
-                    n.namn.toLowerCase().includes("energi") &&
-                    n.enhet && n.enhet.toLowerCase().includes("kcal")
-                );
-                return item ? item.varde : 0;
-            };
-            const getValue = (name) => {
-                const item = nutritionData.find(n =>
-                    n.namn.toLowerCase().includes(name.toLowerCase())
-                );
-                return item ? item.varde : 0;
-            };
+      const energiKcal = getEnergyKcal();
+      const kolhydrater = getValue("kolhydrater");
+      const fett = getValue("fett");
+      const protein = getValue("protein");
 
-            const energiKcal = getEnergyKcal();
-            const kolhydrater = getValue("kolhydrater");
-            const fett = getValue("fett");
-            const protein = getValue("protein");
+      const card = document.getElementById(`food-${food.id}`);
+      if (!card) return;
 
-            const card = document.getElementById(`food-${food.id}`);
-            if (!card) return;
+      // Ingen knapp här – bara info
+      card.innerHTML = `
+        <h3>${food.namn} <small class="per100">(per 100 g)</small></h3>
+        <p><strong>Grupp:</strong> ${groupName}</p>
+        <p><strong>Energi:</strong> ${energiKcal} kcal</p>
+        <p><strong>Kolhydrater:</strong> ${kolhydrater} g</p>
+        <p><strong>Fett:</strong> ${fett} g</p>
+        <p><strong>Protein:</strong> ${protein} g</p>
+      `;
 
-            card.innerHTML =
-            `<h3>${food.namn} <small class="per100">(per 100 g)</small></h3>
-            <p><strong>Grupp:</strong> ${groupName}</p>
-            <p><strong>Energi:</strong> ${energiKcal} kcal</p>
-            <p><strong>Kolhydrater:</strong> ${kolhydrater} g</p>
-            <p><strong>Fett:</strong> ${fett} g</p>
-            <p><strong>Protein:</strong> ${protein} g</p>
-            <button class="add-button" ...>Lägg till</button>`;
+      if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
+        card.classList.add("highlight");
+        setTimeout(() => card.classList.remove("highlight"), 1800);
+      }
 
-               if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
-                    card.classList.add("highlight");
-                    setTimeout(() => card.classList.remove("highlight"), 1800);
-}
+      // Hela kortet öppnar modalen
+      const openModal = () =>
+        showFoodModal(food, groupName, energiKcal, kolhydrater, fett, protein);
 
-            const button = card.querySelector(".add-button");
-            button.disabled = false;
-            button.addEventListener("click", function () {
-                showFoodModal(food, groupName, energiKcal, kolhydrater, fett, protein);
-            });
-
-        } catch (err) {
-            // Avbrutet? Gör inget, visa inte fel.
-            if (err.name === 'AbortError') return;
-            if (version !== null && version !== currentSearchVersion) return;
-
-            const card = document.getElementById(`food-${food.id}`);
-            if (!card) return;
-            const loading = card.querySelector(".loading");
-            if (loading) loading.textContent = "Kunde inte hämta näringsvärden.";
+      card.addEventListener("click", openModal);
+      card.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          openModal();
         }
-    });
+      });
+
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      if (version !== null && version !== currentSearchVersion) return;
+      const card = document.getElementById(`food-${food.id}`);
+      if (!card) return;
+      const loading = card.querySelector(".loading");
+      if (loading) loading.textContent = "Kunde inte hämta näringsvärden.";
+    }
+  });
 }
+
 
 function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = null) {
     const qty = quantity !== null ? quantity : (parseInt(document.getElementById("quantity" + id).value, 10) || 100);
@@ -538,53 +542,78 @@ function onNumber(index, numberEl) {
 function showFoodModal(food, group, energy, carbs, fat, protein) {
   const modal = document.getElementById("foodModal");
   const body = document.getElementById("modalBody");
-    body.innerHTML = `
+
+  body.innerHTML = `
     <h2>${food.namn}</h2>
     <p><strong>Grupp:</strong> ${group}</p>
-    <p><strong>Energi:</strong> ${energy} kcal</p>
-    <p><strong>Kolhydrater:</strong> ${carbs} g</p>
-    <p><strong>Fett:</strong> ${fat} g</p>
-    <p><strong>Protein:</strong> ${protein} g</p>
 
     <div class="modal-qty">
-        <label for="modalQuantityNumber">Gram:</label>
-        <input type="number" id="modalQuantityNumber" class="quantity-input" min="0" step="1" value="100">
-        <input type="range" id="modalQuantitySlider" class="quantity-slider" min="0" step="10" max="${DEFAULT_SLIDER_MAX}" value="100">
+      <label for="modalQuantityNumber">Gram:</label>
+      <input type="number" id="modalQuantityNumber" class="quantity-input" min="0" step="1" value="100">
+      <input type="range" id="modalQuantitySlider" class="quantity-slider" min="0" step="10" max="${DEFAULT_SLIDER_MAX}" value="100">
     </div>
 
+    <p class="per100">
+      <em>Per 100 g:</em>
+      Energi: ${energy} kcal · Kolhydrater: ${carbs} g · Fett: ${fat} g · Protein: ${protein} g
+    </p>
+
+    <h3 style="margin-top:10px">Beräknat för <span id="modalQLabel">100</span> g</h3>
+    <ul id="modalCalcList" style="list-style:none; padding-left:0; margin-top:6px">
+      <li>Energi: <strong><span id="calcEnergy">0</span> kcal</strong></li>
+      <li>Kolhydrater: <strong><span id="calcCarbs">0</span> g</strong></li>
+      <li>Fett: <strong><span id="calcFat">0</span> g</strong></li>
+      <li>Protein: <strong><span id="calcProtein">0</span> g</strong></li>
+    </ul>
+
     <button id="modalAddBtn">Lägg till</button>
-    `;
+  `;
 
-    const num = document.getElementById("modalQuantityNumber");
-    const sld = document.getElementById("modalQuantitySlider");
+  const num = document.getElementById("modalQuantityNumber");
+  const sld = document.getElementById("modalQuantitySlider");
 
-    // live-synk mellan inputs
-    const syncModal = (q) => {
+  const qLabel   = document.getElementById("modalQLabel");
+  const eEl      = document.getElementById("calcEnergy");
+  const cEl      = document.getElementById("calcCarbs");
+  const fEl      = document.getElementById("calcFat");
+  const pEl      = document.getElementById("calcProtein");
+
+  // formatterare
+  const round1 = (n) => Math.round(n * 10) / 10;
+
+  // uppdatera beräkning + synka kontroller
+  const updateCalc = (q) => {
     const val = Math.max(0, isNaN(q) ? 0 : Math.round(q));
-    if (parseInt(num.value,10) !== val) num.value = val;
-    if (parseInt(sld.value,10) !== val) sld.value = val;
-    };
+    if (parseInt(num.value, 10) !== val) num.value = val;
+    if (parseInt(sld.value, 10) !== val) sld.value = val;
+    if (val > parseInt(sld.max, 10)) sld.max = val;  // låt slidern växa
 
-    num.addEventListener("input", () => {
-    // låt slidern växa om man skriver in större värde än max
-    const q = parseInt(num.value, 10) || 0;
-    if (q > parseInt(sld.max,10)) sld.max = q;
-    syncModal(q);
-    });
+    const factor = val / 100;
+    qLabel.textContent = val.toString();
+    eEl.textContent = round1(energy  * factor).toFixed(1);
+    cEl.textContent = round1(carbs   * factor).toFixed(1);
+    fEl.textContent = round1(fat     * factor).toFixed(1);
+    pEl.textContent = round1(protein * factor).toFixed(1);
+  };
 
-    sld.addEventListener("input", () => syncModal(parseInt(sld.value, 10) || 0));
+  // live-synk mellan inputs + beräkningar
+  num.addEventListener("input", () => updateCalc(parseInt(num.value, 10) || 0));
+  sld.addEventListener("input", () => updateCalc(parseInt(sld.value, 10) || 0));
 
-
-    document.getElementById("modalAddBtn").onclick = () => {
+  // Lägg till
+  document.getElementById("modalAddBtn").onclick = () => {
     const q = parseInt(num.value, 10) || 0;
     addFood(food.id, food.namn, energy, carbs, fat, protein, q);
     closeFoodModal();
-    };
+  };
 
+  // stängning
   const span = modal.querySelector(".close");
   span.onclick = closeFoodModal;
   window.onclick = (e) => e.target === modal && closeFoodModal();
+
   modal.style.display = "block";
+  updateCalc(100); // init
 }
 
 function closeFoodModal() {
