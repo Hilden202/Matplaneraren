@@ -1,23 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matplaneraren</title>
+    <title>Kostplaneraren</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
-    <header class="header-top">
-        <form>
-            <div id="searchInput">
-                <h1>Matplaneraren</h1>
-                <input type="text" id="foodInput" placeholder="Sök efter livsmedel...">
-            </div>
-        </form>
-    </header>
+<header class="header-top">
+  <div class="header-meta">
+    <span class="data-badge">Data: Livsmedelsverkets öppna API</span>
+    <img class="brand-mark" src="images/kp-cutlery-sidebyside-512.png" alt="Kostplaneraren logga" />
+  </div>
+  <form>
+    <div id="searchInput">
+      <h1 class="site-title">Kostplaneraren.se</h1>
+      <p class="site-sub">Planera måltider med näringsdata</p>
+      <input type="text" id="foodInput" placeholder="Sök efter livsmedel...">
+    </div>
+  </form>
+</header>
+
 <main class="page">
   <!-- Vänsterkolumn: Sökresultat -->
   <div id="nutritionOutput" class="main-left"></div>
