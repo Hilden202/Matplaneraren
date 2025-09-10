@@ -23,32 +23,34 @@ document.addEventListener("keydown", (e) => {
 const rightInner = document.querySelector(".right-inner");
 const selectedFoodsListEl = document.getElementById("selectedFoodsList");
 const summaryEl = document.getElementById("summary");
+const sidebarHeader = document.querySelector(".sidebar-header");
+
+function setHeaderHeightVar() {
+  const h = document.querySelector(".header-top")?.offsetHeight || 0;
+  document.documentElement.style.setProperty("--header-h", `${h}px`);
+}
+window.addEventListener("load", setHeaderHeightVar);
+window.addEventListener("resize", setHeaderHeightVar);
 
  function isMobile() {
    return window.matchMedia("(max-width: 600px)").matches;
  }
 
- function mountIntoDrawer() {
-   if (!isMobile()) return;
-   // flytta in om inte redan finns där
-   if (!drawerContent.contains(selectedFoodsListEl)) {
-     drawerContent.prepend(selectedFoodsListEl);
-   }
-   if (!drawerContent.contains(summaryEl)) {
-     drawerContent.appendChild(summaryEl);
-   }
- }
+function mountIntoDrawer() {
+  if (!isMobile()) return;
+  if (!drawerContent.contains(sidebarHeader))      drawerContent.prepend(sidebarHeader);
+  if (!drawerContent.contains(selectedFoodsListEl)) drawerContent.append(selectedFoodsListEl);
+  if (!drawerContent.contains(summaryEl))           drawerContent.append(summaryEl);
+}
 
- function mountBackToRightColumn() {
-   if (isMobile()) return;
-  // Flytta tillbaka i rätt ordning utan placeholders (robust vid flera cykler)
-  if (!rightInner.contains(selectedFoodsListEl)) {
-    rightInner.prepend(selectedFoodsListEl);
-  }
-  if (!rightInner.contains(summaryEl)) {
-    rightInner.append(summaryEl);
-  }
- }
+function mountBackToRightColumn() {
+  if (isMobile()) return;
+  const rightInner = document.querySelector(".right-inner");
+  if (!rightInner.contains(sidebarHeader))        rightInner.prepend(sidebarHeader);
+  if (!rightInner.contains(selectedFoodsListEl))  rightInner.append(selectedFoodsListEl);
+  if (!rightInner.contains(summaryEl))            rightInner.append(summaryEl);
+}
+
 
 function setDrawerOpen(open) {
   if (!isMobile()) return;
@@ -560,31 +562,24 @@ renderFoodList(foodData);
 function adjustSelectedListHeight() {
   const list = document.getElementById("selectedFoodsList");
   const summary = document.getElementById("summary");
-  const container = isMobile()
-    ? drawerContent
-    : document.querySelector(".main-right"); // 🔑 mät högerkolumnen (100vh)
+  const container = isMobile() ? drawerContent : document.querySelector(".main-right");
   if (!container || !list || !summary) return;
 
   const containerHeight = container.clientHeight || container.getBoundingClientRect().height;
-  const summaryHeight = summary.getBoundingClientRect().height;
+  const summaryHeight   = summary.getBoundingClientRect().height;
+  const headerHeight    = sidebarHeader ? (sidebarHeader.getBoundingClientRect().height || 0) : 0;
 
-  // 📱 Mobil (drawer): begränsa så panelen inte trycks
   if (isMobile()) {
-    const hardCap = Math.max(0, containerHeight - summaryHeight - 20);
-    const earlyCap = 200; // ~2 rader innan scroll
+    const hardCap = Math.max(0, containerHeight - summaryHeight - headerHeight - 20);
+    const earlyCap = 200;
     const maxListHeight = Math.min(earlyCap, hardCap);
     list.style.maxHeight = maxListHeight + "px";
     list.style.overflowY = "auto";
     return;
   }
 
-  // 🖥️ Desktop: låt listan växa tills Summering når botten, därefter scroll
-  const padding = 270; // liten luft mellan listan och summering
-  const maxListHeight = Math.max(0, containerHeight - summaryHeight - padding);
-  if (list.scrollHeight > maxListHeight) {
-    list.style.maxHeight = maxListHeight + "px";
-  } else {
-    list.style.maxHeight = "none"; // väx fritt när det finns plats
-  }
+  const gutter = 12; // liten luft
+  const maxListHeight = Math.max(0, containerHeight - summaryHeight - headerHeight - gutter);
+  list.style.maxHeight = (list.scrollHeight > maxListHeight ? maxListHeight : "none");
   list.style.overflowY = "auto";
- }
+}

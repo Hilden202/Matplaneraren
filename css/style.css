@@ -23,7 +23,7 @@ html {
   --header-meta-h: 52px;   /* reservyta för badge + ikon */  
 }
 
-:root { --header-h: 215px; }        /* anpassa vid behov */
+:root { --header-h: 180px; } /* fallback; JS sets the real value */
 
 .header-top{
   position: sticky;
@@ -385,16 +385,29 @@ button:hover{
   overflow-y: auto;
 }
 
-.main-right {
-  flex-basis: 46vw;
+.main-right{
   position: sticky;
-  top: 151px;
-  height: 100vh;
-  max-height: 100vh;
-  padding-left: 10px;
-  overflow: hidden; /* ändrad från auto */
+  top: calc(var(--header-h) + 8px);            /* never slide under banner */
+  height: calc(100vh - var(--header-h) - 8px); /* exact viewport below banner */
   display: flex;
   flex-direction: column;
+  padding-left: 10px;
+  overflow: hidden;                             /* children handle the scroll */
+}
+
+/* rubrik/toolbar för listan, ligger utanför listans scroll */
+.sidebar-header{
+  position: sticky;     /* sitter fast i högerkolumnens/drawerns topp */
+  top: 0;               /* i drawern funkar detta också */
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  background: #eee;     /* samma/fungerande bakgrund */
+  border: 1px solid #ccc;
+  border-bottom: none;  /* så den “smälter ihop” med boxen nedan */
 }
 
 .right-inner{
@@ -407,8 +420,16 @@ button:hover{
 }
 
 #selectedFoodsList{
-  flex:0 1 auto;          /* så JS kan styra max-height */
-  overflow-y:auto;        /* scroll aktiveras när max-height träffas */
+  overflow-y: auto;
+  max-height: none;     /* styrs av JS */
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+}
+
+/* ta bort listboxens “dubbla” paddning om du hade den där */
+#selectedFoodsList > ul{
+  margin: 0;
+  padding: 10px;
 }
 
 #summary {
