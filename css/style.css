@@ -107,7 +107,8 @@ html {
   /* låt dokumentet skrolla, inte vänsterspalten */
 }
 .main-right {
-  flex-basis: 46vw;
+  flex: 0 0 clamp(360px, 46vw, 560px);
+  box-sizing: border-box;
   position: sticky;
   top: var(--header-h);
   height: 100vh;
@@ -397,7 +398,7 @@ button:hover{
 }
 
 .right-inner{
-  position: fixed;
+  position: static;
   display:flex;
   flex-direction:column;
   width:100%;
