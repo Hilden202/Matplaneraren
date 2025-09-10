@@ -294,22 +294,13 @@ async function renderFoodList(data, version = null, signal = null) {
             if (!card) return;
 
             card.innerHTML =
-              `<h3>${food.namn}</h3>
-               <p><strong>Grupp:</strong> ${groupName}</p>
-               <p><strong>Energi:</strong> ${energiKcal} kcal</p>
-               <p><strong>Kolhydrater:</strong> ${kolhydrater} g</p>
-               <p><strong>Fett:</strong> ${fett} g</p>
-               <p><strong>Protein:</strong> ${protein} g</p>
-               <button class="add-button"
-                       data-id="${food.id}"
-                       data-name="${food.namn}"
-                       data-group="${groupName}"
-                       data-energy="${energiKcal}"
-                       data-carbs="${kolhydrater}"
-                       data-fat="${fett}"
-                       data-protein="${protein}">
-                   Lägg till
-               </button>`;
+            `<h3>${food.namn} <small class="per100">(per 100 g)</small></h3>
+            <p><strong>Grupp:</strong> ${groupName}</p>
+            <p><strong>Energi:</strong> ${energiKcal} kcal</p>
+            <p><strong>Kolhydrater:</strong> ${kolhydrater} g</p>
+            <p><strong>Fett:</strong> ${fett} g</p>
+            <p><strong>Protein:</strong> ${protein} g</p>
+            <button class="add-button" ...>Lägg till</button>`;
 
                if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
                     card.classList.add("highlight");

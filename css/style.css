@@ -20,9 +20,10 @@ html {
   --color-teal-dark:#006666; /* hover */
   --text-on-slate:#ffffff;   /* rubrik i header */
   --text-on-slate-dim:rgba(255,255,255,.82); /* undertitel i header */
+  --header-meta-h: 52px;   /* reservyta för badge + ikon */  
 }
 
-:root { --header-h: 185px; }        /* anpassa vid behov */
+:root { --header-h: 215px; }        /* anpassa vid behov */
 
 .header-top{
   position: sticky;
@@ -38,19 +39,21 @@ html {
 
 .header-meta {
   position: relative;
+  min-height: var(--header-meta-h);
 }
 .header-meta .data-badge {
   position: absolute;
   top: 6px;
-  right: 64px;           /* lämna plats för loggan */
+  right: 64px;
   background: #e5e7eb;
   color: #111827;
   font-weight: 800;
-  font-size: 16px;
-  padding: 10px 14px;
-  border-radius: 9999px; /* piller */
+  font-size: clamp(12px, 2.8vw, 16px); /* 👈 responsivt likt H1 */
+  padding: 6px 10px;                    /* tajtare på små skärmar */
+  border-radius: 9999px;
   white-space: nowrap;
 }
+
 .header-meta .brand-mark {
   position: absolute;
   top: 6px;
@@ -62,6 +65,7 @@ html {
 
 
 @media (max-width: 520px){
+  .header-meta { min-height: 48px; }
   .header-meta .data-badge{
     right: 56px;
     font-size: 14px;
@@ -535,4 +539,10 @@ button:hover{
   }
   .food-list-item { flex-wrap: wrap; }
   .food-amount { min-width: 0; }
+}
+
+.per100 {
+  font-weight: normal;
+  font-size: 0.6em;
+  color: #666;
 }
