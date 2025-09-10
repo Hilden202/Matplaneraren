@@ -579,7 +579,7 @@ function adjustSelectedListHeight() {
   }
 
   // 🖥️ Desktop: låt listan växa tills Summering når botten, därefter scroll
-  const padding = 200; // liten luft mellan listan och summering
+  const padding = 270; // liten luft mellan listan och summering
   const maxListHeight = Math.max(0, containerHeight - summaryHeight - padding);
   if (list.scrollHeight > maxListHeight) {
     list.style.maxHeight = maxListHeight + "px";

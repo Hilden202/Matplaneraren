@@ -397,6 +397,7 @@ button:hover{
 }
 
 .right-inner{
+  position: fixed;
   display:flex;
   flex-direction:column;
   width:100%;
