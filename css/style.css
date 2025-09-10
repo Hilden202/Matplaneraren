@@ -611,3 +611,50 @@ button:not(.clear-btn):hover{
   font-size: 0.6em;
   color: #666;
 }
+
+.site-credits{
+  display:inline-block;
+  margin: 2px 0 12px 0;
+  font-size: clamp(12px, 1.8vw, 14px);
+  color: var(--text-on-slate-dim);
+  text-decoration: none;           /* ingen underline */
+  transition: color .15s ease;     /* mjukare hover */
+}
+.site-credits:hover,
+.site-credits:focus{
+  color: #fff;
+  text-decoration: none;
+}
+
+/* === Kompaktare produktkort på mobil === */
+@media (max-width: 520px){
+  /* Själva kortet */
+  .food-card{
+    padding: 8px;
+    margin: 8px 0;
+  }
+
+  /* Rubrik + (per 100 g) */
+  .food-card h3{
+    font-size: 18px;
+    line-height: 1.25;
+    margin: 0 0 6px 0;
+  }
+  .food-card h3 .per100{
+    font-size: .65em; /* lite mindre än tidigare */
+  }
+
+  /* Text-rader (Energi, Kolhydrater, osv.) */
+  .food-card p{
+    font-size: 13.5px;
+    line-height: 1.35;
+    margin: 4px 0;
+  }
+
+  /* “Lägg till”-knappen i kortet */
+  .food-card .add-button{
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 7px;
+  }
+}
