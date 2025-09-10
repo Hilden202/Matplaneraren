@@ -4,7 +4,83 @@ const foodListContainer = document.getElementById("foodListContainer");
 const nutritionOutput = document.getElementById("nutritionOutput");
 const searchInput = document.getElementById("foodInput");
 const DEFAULT_SLIDER_MAX = 1000;
+ // Drawer-element
+ const mobileDrawer = document.getElementById("mobileDrawer");
+ const drawerHandle = document.getElementById("drawerHandle");
+ const drawerChev   = document.getElementById("drawerChev");
+ const drawerContent = document.getElementById("drawerContent");
+// Referenser för desktop-kolumnen
+const rightInner = document.querySelector(".right-inner");
+const selectedFoodsListEl = document.getElementById("selectedFoodsList");
+const summaryEl = document.getElementById("summary");
 
+ function isMobile() {
+   return window.matchMedia("(max-width: 600px)").matches;
+ }
+
+ function mountIntoDrawer() {
+   if (!isMobile()) return;
+   // flytta in om inte redan finns där
+   if (!drawerContent.contains(selectedFoodsListEl)) {
+     drawerContent.prepend(selectedFoodsListEl);
+   }
+   if (!drawerContent.contains(summaryEl)) {
+     drawerContent.appendChild(summaryEl);
+   }
+ }
+
+ function mountBackToRightColumn() {
+   if (isMobile()) return;
+  // Flytta tillbaka i rätt ordning utan placeholders (robust vid flera cykler)
+  if (!rightInner.contains(selectedFoodsListEl)) {
+    rightInner.prepend(selectedFoodsListEl);
+  }
+  if (!rightInner.contains(summaryEl)) {
+    rightInner.append(summaryEl);
+  }
+ }
+
+function setDrawerOpen(open) {
+  if (!isMobile()) return;
+  mobileDrawer.classList.toggle("open", open);
+  drawerHandle.setAttribute("aria-expanded", open ? "true" : "false");
+  mobileDrawer.setAttribute("aria-hidden", open ? "false" : "true");
+
+  // Lås bakgrund vid öppen låda
+  document.documentElement.style.overflow = open ? "hidden" : "";
+  document.body.style.overflow = open ? "hidden" : "";
+
+  if (open) {
+    // hoppa till toppen och räkna ut maxhöjd för listan efter att panelen renderats
+    drawerContent.scrollTop = 0;
+    requestAnimationFrame(adjustSelectedListHeight);
+  }
+}
+
+
+ // Toggle på klick (bara på mobil)
+ drawerHandle?.addEventListener("click", () => {
+   if (!isMobile()) return;
+   const nowOpen = !mobileDrawer.classList.contains("open");
+   setDrawerOpen(nowOpen);
+ });
+
+ // Flytta in/ut vid start & vid resize
+ function syncDrawerMount() {
+   if (isMobile()) {
+     mountIntoDrawer();
+   } else {
+     setDrawerOpen(false);
+     mountBackToRightColumn();
+     // återställ ev. overflow på desktop
+     document.documentElement.style.overflow = "";
+     document.body.style.overflow = "";
+   }
+   // efter mount: justera höjdbegränsning
+   requestAnimationFrame(adjustSelectedListHeight);
+ }
+window.addEventListener("resize", syncDrawerMount);
+document.addEventListener("DOMContentLoaded", syncDrawerMount);
 
 let foodData = [];
 let selectedFoods = [];
@@ -369,6 +445,8 @@ function updateSummary() {
     document.getElementById("totalCarbs").textContent = "Totala kolhydrater: " + totalCarbs.toFixed(1) + " g";
     document.getElementById("totalFat").textContent = "Totalt fett: " + totalFat.toFixed(1) + " g";
     document.getElementById("totalProtein").textContent = "Totalt protein: " + totalProtein.toFixed(1) + " g";
+    // Efter summering: justera listans maxhöjd (mobil/desktop)
+    adjustSelectedListHeight();
 }
 
 function syncRow(index, qty, numberEl, sliderEl, labelEl) {
@@ -474,13 +552,25 @@ document.getElementById("clearListButton").addEventListener("click", function ()
 });
 
 renderFoodList(foodData);
+ // Synka mount och höjder vid init
+ syncDrawerMount();
+ adjustSelectedListHeight();
 
 function adjustSelectedListHeight() {
-  const container = document.querySelector(".right-inner");
   const list = document.getElementById("selectedFoodsList");
   const summary = document.getElementById("summary");
 
-  const maxListHeight = container.parentElement.clientHeight - summary.offsetHeight - 20;
+  // Desktop: använd right-inner som referens
+  // Mobil: använd drawerContent som referens
+  const container = isMobile() ? drawerContent : document.querySelector(".right-inner");
+  if (!container || !list || !summary) return;
+
+  // Tillgänglig höjd för listan = containerhöjd - summeringens höjd - marginal
+  // På mobil är container en fixed panel med max-height: 70vh
+  const containerHeight = container.clientHeight || container.getBoundingClientRect().height;
+  const summaryHeight   = summary.getBoundingClientRect().height;
+
+  const maxListHeight = Math.max(0, containerHeight - summaryHeight - 20);
 
   if (list.scrollHeight > maxListHeight) {
     list.style.maxHeight = maxListHeight + "px";
@@ -490,4 +580,5 @@ function adjustSelectedListHeight() {
     list.style.overflowY = "hidden";
   }
 }
+
 

@@ -3,12 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matplaneraren</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 </head>
 
 <body>
@@ -26,6 +24,7 @@
 
   <!-- Högerkolumn: Matlista + summering -->
   <div class="main-right">
+
     <div class="right-inner">
 
       <!-- Matlistan -->
@@ -47,15 +46,29 @@
     </div>
   </div>
 </main>
-    <script src="script/foods.js"></script>
-</body>
-
-</html>
-
-<!-- Modal-bakgrund -->
-<div id="foodModal" class="modal hidden">
-  <div class="modal-content">
-    <span class="close">&times;</span>
-    <div id="modalBody"></div>
+      <!-- Mobil: utfällbar låda för Matlista + Summering -->
+  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <button class="drawer-handle" id="drawerHandle" aria-expanded="false" type="button">      
+        <span>Matlista & Summering</span>
+      <span class="chev" id="drawerChev">▲</span>
+    </button>
+    <div class="drawer-content" id="drawerContent"><!-- här flyttas innehållet in på mobil --></div>
+        <div class="drawer-footer">
+      <button class="drawer-close" id="drawerClose" type="button">
+        Fäll ihop ▲
+      </button>
+    </div>
   </div>
 </div>
+  </div>
+  <!-- Modal-bakgrund -->
+  <div id="foodModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="script/foods.js"></script>
+</body>
+</html>

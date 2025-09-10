@@ -222,7 +222,6 @@ button:hover {
   transition: background-color .4s ease;
 }
 
-
 .food-list-item {
   display: flex;
   align-items: center;
@@ -346,85 +345,112 @@ button:hover {
   flex-shrink: 0;
 }
 
-/* --- Mobilanpassning (max 600px) --- */
-@media (max-width: 600px) {
-  html, body {
-    height: 100%;
-    overflow: hidden;
-  }
+/* === Mobil: aktivera drawer & dölja desktop-högerkolumn === */
+/* Behåll drawer-lagret fast i botten */
+.mobile-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 108;           /* under modal (200), över sidan */
+  display: none;          /* aktiveras i media query */
+  pointer-events: none;   /* låt barnen styra */
+}
+.mobile-drawer * { pointer-events: auto; } /* återställ för inre element */
 
-  .page {
-    flex-direction: column;
-    height: 100vh;
-  }
+/* === Mobile drawer (telefoner & små tablets) === */
+@media (max-width: 768px) {
+  /* Desktop-högerspalten döljs på mobil; vi använder drawer istället */
+  .page { display: block; }
+  .main-right { display: none; }
 
-  .main-left {
-    flex: 1;
-    overflow-y: auto;
-    max-height: 55vh;
-  }
+  /* Visa drawer-lager */
+  .mobile-drawer { display: block; --drawer-h: 56px; }
 
-  .main-right {
-    width: 100%;
-    flex-basis: auto;
-    min-width: 0;
-    padding-left: 0;
-    position: static;
+  /* Handtaget syns alltid längst ner när lådan är stängd */
+  .drawer-handle {
     display: flex;
-    flex-direction: column;
-    height: 45vh;
-    box-sizing: border-box;
+    position: fixed;
+    left: 0; right: 0;
+    bottom: max(0px, env(safe-area-inset-bottom)); /* iOS safe area */
+    z-index: 110;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    min-height: var(--drawer-h);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: #008080;
+    color: #fff;
+    border-top: 1px solid #006666;
+    box-shadow: 0 -2px 8px rgba(0,0,0,.06);
+    font-weight: 700;
+    font-size: 16px;
+    transform: translateZ(0); /* iOS repaint fix */
+  }
+  .drawer-handle .chev { transition: transform .2s ease; }
+
+  /* Panelen glider upp från botten */
+  .drawer-content {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 109;
+    background: #fafafa;
+    border-top: 1px solid #ddd;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.15);
+    transform: translateY(100%);      /* dold som default */
+    transition: transform .25s ease;
+    max-height: 75vh;
+    overflow: hidden;                  /* bara listan scrollar */
+    padding: 12px 12px max(16px, env(safe-area-inset-bottom));
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    will-change: transform;
   }
 
-.right-inner {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: auto;      /* får full höjd från .main-right */
-}
+  /* När lådan är öppen: panelen upp */
+  .mobile-drawer.open .drawer-content {
+    transform: translateY(0);
+    padding-bottom: calc(var(--drawer-h) + env(safe-area-inset-bottom) + 12px); /* extra luft så summeringen syns ovanför knappen */
+  }
+  .mobile-drawer.open .drawer-handle {
+    position: sticky;
+    top: 0;
+    bottom: auto;
+    border-top: none;
+    border-bottom: 1px solid #006666;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  }
+  .mobile-drawer.open .drawer-handle .chev { transform: rotate(180deg); }
 
+  /* Drawer-innehåll */
+  .drawer-content .food-list { margin: 0; border-left: 0; border-right: 0; }
+  .drawer-content #selectedFoodsList {
+    overflow-y: auto;
+    max-height: calc(75vh - 200px); /* lämna plats åt summering + paddings */
+    -webkit-overflow-scrolling: touch;
+  }
+  .drawer-content #summary { border-top: 1px solid #e3e3e3; }
 
-#selectedFoodsList {
-  overflow-y: auto;
-  max-height: 100%;           /* säkerhetsgräns */
-  flex-grow: 1;               /* låt den växa vid behov */
-  flex-shrink: 1;             /* låt den krympa om lite utrymme behövs */
-}
+  /* Kompaktare UI för mobil */
+  .drawer-content h3 { font-size: 20px; }
+  .quantity-input { font-size: 13px; padding: 6px 5px; max-width: 100%; box-sizing: border-box; }
+  .food-list-item { gap: 8px; }
+  button, .add-button, #clearListButton {
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
 
-
-#summary {
-  flex-shrink: 0;
-  padding: 10px;
-  max-width: 100%;
-  box-sizing: border-box;
-  border-top: 1px solid #ccc;
-}
-
-
+  /* Förhindra sidscroll */
   #foodList,
   .food-list-item,
-  .quantity-input,
-  input[type="number"],
-  .modal-content {
+  .food-amount,
+  .quantity-slider,
+  .quantity-input {
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;
   }
-
-  .food-list-item {
-    flex-wrap: wrap;
-  }
-
-  .food-amount {
-    width: 100%;
-    min-width: auto;
-  }
-
-  .quantity-slider {
-    width: 100%;
-  }
-
-  .adjust-button.remove {
-    flex-shrink: 0;
-  }
+  .food-list-item { flex-wrap: wrap; }
+  .food-amount { min-width: 0; }
 }
