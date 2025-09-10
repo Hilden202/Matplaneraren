@@ -15,6 +15,16 @@ drawerBackdrop?.addEventListener("click", () => {
   setDrawerOpen(false);                 // stänger och uppdaterar aria/overflow
 });
 
+const clearBtn = document.getElementById("clearSearch");
+if (clearBtn) {
+  clearBtn.addEventListener("click", () => {
+    searchInput.value = "";
+    searchInput.focus();
+    // trigga befintlig söklogik
+    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
 // (valfritt) Stäng även på ESC
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") setDrawerOpen(false);

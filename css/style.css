@@ -63,6 +63,27 @@ html {
   display: block;
 }
 
+/* Sök-wrapper: begränsa bredd och undvik overflow */
+#searchInput {
+  position: relative;
+  max-width: 100%;        /* desktop-tak */
+  width: 100%;           /* fyll tillgängligt utrymme */
+  margin: 0;             /* ingen extra marginal */
+}
+
+/* Rad runt input + kryss så krysset kan positioneras rätt */
+.search-row {
+  position: relative;
+  max-width: 680px;
+  width: 100%;
+}
+
+/* Säkerställ att input fyller raden */
+.search-row #foodInput {
+  width: 100%;
+  max-width: 100%;
+}
+
 
 @media (max-width: 520px){
   .header-meta { min-height: 48px; }
@@ -129,20 +150,6 @@ html {
 input[type="number"] {
   width: 50px;
   margin-left: 10px;
-}
-
-/* Sökfält i headern – tydlig kontrast mot mörk bakgrund */
-#foodInput{
-  padding: 12px 16px;
-  font-size: 16px;
-  width: min(680px, 100%);
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  background:#ffffff;
-  color:#222;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-  outline: none;
-  transition: box-shadow .2s ease, border-color .2s ease;
 }
 
 .food-list {
@@ -216,25 +223,60 @@ h3 {
   color: #000;
 }
 
+/* Sökfältet */
 #foodInput {
-  padding: 12px 16px;
-  font-size: 16px;
+  display: block;
   width: 100%;
-  max-width: 500px;
-  border: none;
+  max-width: 100%;     /* låt .search-row sätta taket */
+  box-sizing: border-box;
+  padding: 12px 44px 12px 16px; /* extra höger-padding för krysset */
+  font-size: 16px;
+  border: 1px solid #e0e0e0;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: #fff;
+  color: #222;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
   outline: none;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow .2s ease, border-color .2s ease;
 }
 
-#foodInput::placeholder{ color:#666; }
-#foodInput:focus{
+#foodInput::placeholder { color:#666; }
+#foodInput:focus {
   border-color: var(--color-teal);
   box-shadow: 0 0 0 3px rgba(0,128,128,.22);
 }
 
-button, .adjust-button, .add-button, #clearListButton{
+/* Clear-knapp (×) inne i sökrutan – positioneras relativt .search-row */
+.search-row .clear-btn {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #888;
+  cursor: pointer;  /* hand-pekare */
+  padding: 0;
+  line-height: 1;
+}
+
+/* Hindra globala knappstilar från att “färga” krysset */
+.search-row .clear-btn,
+.search-row .clear-btn:hover,
+.search-row .clear-btn:focus,
+.search-row .clear-btn:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  transform: translateY(-50%) !important;
+  color: inherit;
+}
+
+button:not(.clear-btn), .adjust-button, .add-button, #clearListButton{
   background-color: var(--color-teal);
   color: white;
   border: none;
@@ -246,7 +288,7 @@ button, .adjust-button, .add-button, #clearListButton{
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-button:hover{
+button:not(.clear-btn):hover{
   background-color: var(--color-teal-dark);
   transform: scale(1.03);
 }
