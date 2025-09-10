@@ -21,9 +21,19 @@ html {
   --text-on-slate:#ffffff;   /* rubrik i header */
   --text-on-slate-dim:rgba(255,255,255,.82); /* undertitel i header */
   --header-meta-h: 52px;   /* reservyta för badge + ikon */  
+  --header-h: 180px; /* fallback; JS sets the real value */
+    /* Modalplacering – justera här istället för margin på .modal-content */
+  --modal-top: 15vh;              /* flytta ned/upp modalen */
+  --modal-bottom: 6vh;
 }
 
-:root { --header-h: 180px; } /* fallback; JS sets the real value */
+/* Mobil: lägg modalen ännu lite längre ned + ta höjd för safe area */
+@media (max-width: 520px){
+  :root{
+    --modal-top: 6vh;
+    --modal-bottom: max(7vh, env(safe-area-inset-bottom));
+  }
+}
 
 .header-top{
   position: sticky;
@@ -193,25 +203,68 @@ h3 {
   font-size: 25px;
 }
 
-.modal {
-  display: none;
+/* Overlay – placera innehållet med flex + padding */
+.modal{
+  display: none;                  /* visas via JS */
   position: fixed;
+  inset: 0;
   z-index: 200;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.4);
-  overflow: auto;
+  background: rgba(0,0,0,.45);
+
+  /* Nyckeln: flex + padding istället för margin på .modal-content */
+  display: flex;
+  align-items: flex-start;        /* startar under toppen */
+  justify-content: center;        /* centrera horisontellt */
+  padding: var(--modal-top) 12px var(--modal-bottom);
+
+  overflow: auto;                 /* om innehåll blir högt */
+  -webkit-overflow-scrolling: touch;
 }
-.modal-content {
+
+/* Stabil viewport-höjd där det stöds */
+@supports (height: 100dvh){
+  .modal{ min-height: 100dvh; }
+}
+
+
+/* Själva rutan */
+.modal-content{
   background-color: #fff;
-  margin: 5% auto;
-  padding: 20px;
-  width: 90%;
+  width: 87%;
   max-width: 600px;
-  border-radius: 8px;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 0;                      /* viktigt: nollställ margin */
 }
+
+
+/* På små skärmar: ännu lite längre ner och lite sidomarginal */
+@media (max-width: 520px) {
+  .modal-content {
+    margin: 24vh 12px max(7vh, env(safe-area-inset-bottom)) !important; /* ⬅ 24vh på topp */
+  }
+}
+
+/* Modernare viewport-enheter om de finns */
+@supports (height: 100svh) {
+  .modal-content { margin: 14svh auto 6svh; }
+}
+
+/* Luft före knappen i modalen */
+.modal-actions { margin-top: 12px; }
+
+
+/* Gör modalknappen lätt att träffa på små skärmar */
+@media (max-width: 520px) {
+  #modalAddBtn {
+    width: 100%;
+    display: block;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+}
+
 .close {
   color: #aaa;
   float: right;

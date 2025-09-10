@@ -57,6 +57,14 @@ const selectedFoodsListEl = document.getElementById("selectedFoodsList");
 const summaryEl = document.getElementById("summary");
 const sidebarHeader = document.querySelector(".sidebar-header");
 
+function onModalBackdropClick(e) {
+  // Stäng om klicket/touchen inte var inne i rutan
+  if (!e.target.closest('.modal-content')) {
+    closeFoodModal();
+  }
+}
+
+
 function setHeaderHeightVar() {
   const h = document.querySelector(".header-top")?.offsetHeight || 0;
   document.documentElement.style.setProperty("--header-h", `${h}px`);
@@ -541,17 +549,11 @@ function onNumber(index, numberEl) {
 
 function showFoodModal(food, group, energy, carbs, fat, protein) {
   const modal = document.getElementById("foodModal");
-  const body = document.getElementById("modalBody");
+  const body  = document.getElementById("modalBody");
 
   body.innerHTML = `
     <h2>${food.namn}</h2>
     <p><strong>Grupp:</strong> ${group}</p>
-
-    <div class="modal-qty">
-      <label for="modalQuantityNumber">Gram:</label>
-      <input type="number" id="modalQuantityNumber" class="quantity-input" min="0" step="1" value="100">
-      <input type="range" id="modalQuantitySlider" class="quantity-slider" min="0" step="10" max="${DEFAULT_SLIDER_MAX}" value="100">
-    </div>
 
     <p class="per100">
       <em>Per 100 g:</em>
@@ -566,60 +568,83 @@ function showFoodModal(food, group, energy, carbs, fat, protein) {
       <li>Protein: <strong><span id="calcProtein">0</span> g</strong></li>
     </ul>
 
-    <button id="modalAddBtn">Lägg till</button>
+    <div class="modal-qty">
+      <label for="modalQuantityNumber">Gram:</label>
+      <input type="number" id="modalQuantityNumber" class="quantity-input" min="0" step="1" value="100">
+      <input type="range" id="modalQuantitySlider" class="quantity-slider" min="0" step="10" max="${DEFAULT_SLIDER_MAX}" value="100">
+    </div>
+
+    <div class="modal-actions">
+      <button id="modalAddBtn">Lägg till</button>
+    </div>
   `;
 
-  const num = document.getElementById("modalQuantityNumber");
-  const sld = document.getElementById("modalQuantitySlider");
+  // refs
+  const num    = document.getElementById("modalQuantityNumber");
+  const sld    = document.getElementById("modalQuantitySlider");
+  const qLabel = document.getElementById("modalQLabel");
+  const eEl    = document.getElementById("calcEnergy");
+  const cEl    = document.getElementById("calcCarbs");
+  const fEl    = document.getElementById("calcFat");
+  const pEl    = document.getElementById("calcProtein");
 
-  const qLabel   = document.getElementById("modalQLabel");
-  const eEl      = document.getElementById("calcEnergy");
-  const cEl      = document.getElementById("calcCarbs");
-  const fEl      = document.getElementById("calcFat");
-  const pEl      = document.getElementById("calcProtein");
-
-  // formatterare
   const round1 = (n) => Math.round(n * 10) / 10;
 
-  // uppdatera beräkning + synka kontroller
   const updateCalc = (q) => {
     const val = Math.max(0, isNaN(q) ? 0 : Math.round(q));
     if (parseInt(num.value, 10) !== val) num.value = val;
     if (parseInt(sld.value, 10) !== val) sld.value = val;
-    if (val > parseInt(sld.max, 10)) sld.max = val;  // låt slidern växa
+    if (val > parseInt(sld.max, 10)) sld.max = val;
 
     const factor = val / 100;
-    qLabel.textContent = val.toString();
+    qLabel.textContent = String(val);
     eEl.textContent = round1(energy  * factor).toFixed(1);
     cEl.textContent = round1(carbs   * factor).toFixed(1);
     fEl.textContent = round1(fat     * factor).toFixed(1);
     pEl.textContent = round1(protein * factor).toFixed(1);
   };
 
-  // live-synk mellan inputs + beräkningar
   num.addEventListener("input", () => updateCalc(parseInt(num.value, 10) || 0));
   sld.addEventListener("input", () => updateCalc(parseInt(sld.value, 10) || 0));
 
-  // Lägg till
   document.getElementById("modalAddBtn").onclick = () => {
     const q = parseInt(num.value, 10) || 0;
     addFood(food.id, food.namn, energy, carbs, fat, protein, q);
     closeFoodModal();
   };
 
-  // stängning
-  const span = modal.querySelector(".close");
-  span.onclick = closeFoodModal;
-  window.onclick = (e) => e.target === modal && closeFoodModal();
-
+  // Öppna (OBS: inga overflow-lås här)
   modal.style.display = "block";
-  updateCalc(100); // init
+
+  // Stäng med kryss
+  modal.querySelector(".close").onclick = closeFoodModal;
+
+  // Stäng genom att trycka utanför (iOS + desktop)
+  modal.addEventListener('click', onModalBackdropClick);
+  modal.addEventListener('touchstart', onModalBackdropClick, { passive: true });
+
+  // Stäng med ESC
+  const onEsc = (ev) => { if (ev.key === 'Escape') closeFoodModal(); };
+  document.addEventListener('keydown', onEsc);
+  modal._onEsc = onEsc;
+
+  updateCalc(100);
 }
 
 function closeFoodModal() {
-  document.getElementById("foodModal").style.display = "none";
-}
+  const modal = document.getElementById("foodModal");
+  if (!modal) return;
 
+  modal.style.display = "none";
+  modal.removeEventListener('click', onModalBackdropClick);
+  modal.removeEventListener('touchstart', onModalBackdropClick);
+
+  if (modal._onEsc) {
+    document.removeEventListener('keydown', modal._onEsc);
+    delete modal._onEsc;
+  }
+  // Inga overflow-återställningar behövs, eftersom vi aldrig låste dem.
+}
 
 document.getElementById("clearListButton").addEventListener("click", function () {
     selectedFoods = [];
