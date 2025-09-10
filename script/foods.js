@@ -9,6 +9,16 @@ const DEFAULT_SLIDER_MAX = 1000;
  const drawerHandle = document.getElementById("drawerHandle");
  const drawerChev   = document.getElementById("drawerChev");
  const drawerContent = document.getElementById("drawerContent");
+// Backdrop för klick-utanför-stäng
+const drawerBackdrop = mobileDrawer?.querySelector(".drawer-backdrop");
+drawerBackdrop?.addEventListener("click", () => {
+  setDrawerOpen(false);                 // stänger och uppdaterar aria/overflow
+});
+
+// (valfritt) Stäng även på ESC
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") setDrawerOpen(false);
+});
 // Referenser för desktop-kolumnen
 const rightInner = document.querySelector(".right-inner");
 const selectedFoodsListEl = document.getElementById("selectedFoodsList");
