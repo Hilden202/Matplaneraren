@@ -569,29 +569,31 @@ renderFoodList(foodData);
 function adjustSelectedListHeight() {
   const list = document.getElementById("selectedFoodsList");
   const summary = document.getElementById("summary");
-  const container = isMobile() ? drawerContent : document.querySelector(".right-inner");
+  const container = isMobile()
+    ? drawerContent
+    : document.querySelector(".main-right"); // 🔑 mät högerkolumnen (100vh)
   if (!container || !list || !summary) return;
 
   const containerHeight = container.clientHeight || container.getBoundingClientRect().height;
   const summaryHeight = summary.getBoundingClientRect().height;
 
-  // Mobil: börja scrolla tidigt (efter ~2 rader)
+  // 📱 Mobil (drawer): begränsa så panelen inte trycks
   if (isMobile()) {
-    const hardCap = Math.max(0, containerHeight - summaryHeight - 20); // paneltak
-    const earlyCap = 200; // ~2 rader
+    const hardCap = Math.max(0, containerHeight - summaryHeight - 20);
+    const earlyCap = 200; // ~2 rader innan scroll
     const maxListHeight = Math.min(earlyCap, hardCap);
     list.style.maxHeight = maxListHeight + "px";
     list.style.overflowY = "auto";
     return;
   }
 
-  // Desktop: som tidigare
-  const maxListHeight = Math.max(0, containerHeight - summaryHeight - 20);
+  // 🖥️ Desktop: låt listan växa tills Summering når botten, därefter scroll
+  const padding = 200; // liten luft mellan listan och summering
+  const maxListHeight = Math.max(0, containerHeight - summaryHeight - padding);
   if (list.scrollHeight > maxListHeight) {
     list.style.maxHeight = maxListHeight + "px";
-    list.style.overflowY = "auto";
   } else {
-    list.style.maxHeight = "none";
-    list.style.overflowY = "hidden";
+    list.style.maxHeight = "none"; // väx fritt när det finns plats
   }
-}
+  list.style.overflowY = "auto";
+ }

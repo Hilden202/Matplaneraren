@@ -392,17 +392,17 @@ button:hover{
   flex-direction: column;
 }
 
-.right-inner {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-height: 0;
-  height: auto; /* 👈 Låt innehållet styra höjden */
+.right-inner{
+  display:flex;
+  flex-direction:column;
+  width:100%;
+  min-height:0;   /* viktigt för att barn ska få krympa */
+  height:auto;    /* låt innehållet styra (din önskan) */
 }
 
-#selectedFoodsList {
-  flex: 1;
-  overflow-y: auto;
+#selectedFoodsList{
+  flex:0 1 auto;          /* så JS kan styra max-height */
+  overflow-y:auto;        /* scroll aktiveras när max-height träffas */
 }
 
 #summary {
