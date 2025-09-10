@@ -372,7 +372,7 @@ button:hover {
     display: flex;
     position: fixed;
     left: 0; right: 0;
-    bottom: max(0px, env(safe-area-inset-bottom)); /* iOS safe area */
+    bottom: max(0px, env(safe-area-inset-bottom));
     z-index: 110;
     justify-content: space-between;
     align-items: center;
@@ -385,7 +385,7 @@ button:hover {
     box-shadow: 0 -2px 8px rgba(0,0,0,.06);
     font-weight: 700;
     font-size: 16px;
-    transform: translateZ(0); /* iOS repaint fix */
+    transform: translateZ(0);
   }
   .drawer-handle .chev { transition: transform .2s ease; }
 
@@ -407,10 +407,11 @@ button:hover {
     will-change: transform;
   }
 
-  /* När lådan är öppen: panelen upp */
+  /* När lådan är öppen: panelen upp och lite extra botten-padding
+     så att sista raden i summering inte hamnar bakom knappen */
   .mobile-drawer.open .drawer-content {
     transform: translateY(0);
-    padding-bottom: calc(var(--drawer-h) + env(safe-area-inset-bottom) + 12px); /* extra luft så summeringen syns ovanför knappen */
+    padding-bottom: calc(var(--drawer-h) + env(safe-area-inset-bottom) + 12px);
   }
   .mobile-drawer.open .drawer-handle {
     position: sticky;
@@ -424,11 +425,14 @@ button:hover {
 
   /* Drawer-innehåll */
   .drawer-content .food-list { margin: 0; border-left: 0; border-right: 0; }
+
+  /* Börja scrolla redan efter ~2 rader, men gå aldrig över paneltaket */
   .drawer-content #selectedFoodsList {
     overflow-y: auto;
-    max-height: calc(75vh - 200px); /* lämna plats åt summering + paddings */
+    max-height: min(150px, calc(75vh - 200px));
     -webkit-overflow-scrolling: touch;
   }
+
   .drawer-content #summary { border-top: 1px solid #e3e3e3; }
 
   /* Kompaktare UI för mobil */
@@ -441,7 +445,7 @@ button:hover {
     font-size: 14px;
   }
 
-  /* Förhindra sidscroll */
+  /* Förhindra sidscroll vågrätt */
   #foodList,
   .food-list-item,
   .food-amount,

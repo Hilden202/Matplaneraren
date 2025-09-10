@@ -559,19 +559,24 @@ renderFoodList(foodData);
 function adjustSelectedListHeight() {
   const list = document.getElementById("selectedFoodsList");
   const summary = document.getElementById("summary");
-
-  // Desktop: använd right-inner som referens
-  // Mobil: använd drawerContent som referens
   const container = isMobile() ? drawerContent : document.querySelector(".right-inner");
   if (!container || !list || !summary) return;
 
-  // Tillgänglig höjd för listan = containerhöjd - summeringens höjd - marginal
-  // På mobil är container en fixed panel med max-height: 70vh
   const containerHeight = container.clientHeight || container.getBoundingClientRect().height;
-  const summaryHeight   = summary.getBoundingClientRect().height;
+  const summaryHeight = summary.getBoundingClientRect().height;
 
+  // Mobil: börja scrolla tidigt (efter ~2 rader)
+  if (isMobile()) {
+    const hardCap = Math.max(0, containerHeight - summaryHeight - 20); // paneltak
+    const earlyCap = 200; // ~2 rader
+    const maxListHeight = Math.min(earlyCap, hardCap);
+    list.style.maxHeight = maxListHeight + "px";
+    list.style.overflowY = "auto";
+    return;
+  }
+
+  // Desktop: som tidigare
   const maxListHeight = Math.max(0, containerHeight - summaryHeight - 20);
-
   if (list.scrollHeight > maxListHeight) {
     list.style.maxHeight = maxListHeight + "px";
     list.style.overflowY = "auto";
@@ -580,5 +585,3 @@ function adjustSelectedListHeight() {
     list.style.overflowY = "hidden";
   }
 }
-
-
