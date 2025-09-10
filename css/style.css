@@ -23,14 +23,14 @@ html {
   --header-meta-h: 52px;   /* reservyta för badge + ikon */  
   --header-h: 180px; /* fallback; JS sets the real value */
     /* Modalplacering – justera här istället för margin på .modal-content */
-  --modal-top: 30vh;              /* flytta ned/upp modalen */
+  --modal-top: 26vh;              /* flytta ned/upp modalen */
   --modal-bottom: 6vh;
 }
 
 /* Mobil: lägg modalen ännu lite längre ned + ta höjd för safe area */
 @media (max-width: 520px){
   :root{
-    --modal-top: 30vh;
+    --modal-top: 26vh;
     --modal-bottom: max(7vh, env(safe-area-inset-bottom));
   }
 }
