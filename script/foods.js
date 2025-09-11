@@ -685,3 +685,25 @@ function adjustSelectedListHeight() {
   list.style.maxHeight = (list.scrollHeight > maxListHeight ? maxListHeight : "none");
   list.style.overflowY = "auto";
 }
+
+// Scrolla för att ändra alla range-sliders (även de som skapas senare)
+document.addEventListener('wheel', (e) => {
+  const slider = e.target.closest('input[type="range"]');
+  if (!slider) return;                 // ignorera allt som inte är ett range
+
+  e.preventDefault();                  // stoppa sid-/panelscroll
+  const min  = slider.min  ? Number(slider.min)  : 0;
+  const max  = slider.max  ? Number(slider.max)  : 100;
+  const step = slider.step ? Number(slider.step) : 1;
+
+  // upp = öka, ned = minska
+  const dir  = e.deltaY < 0 ? 1 : -1;
+  const mult = e.shiftKey ? 10 : 1;   // håll Shift för stora steg (valfritt)
+
+  const next = Math.max(min, Math.min(max, Number(slider.value) + dir * step * mult));
+  if (next !== Number(slider.value)) {
+    slider.value = next;
+    // trigga din befintliga oninput-logik (onSlider)
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}, { passive: false });
