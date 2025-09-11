@@ -22,15 +22,47 @@ let renderedCount = 0;
 let isAppending = false;
 let io = null;
 let sentinel = null;
-let dietFilter = { type: 'all', carbMax: Infinity };
+let dietFilter = { type: 'all' };
+
+let booted = false;
+
+function getScrollRoot() {
+  const left = document.querySelector('.main-left');
+  if (left && (left.scrollHeight - left.clientHeight) > 2) {
+    return left;                // .main-left är verkliga skrollcontainern
+  }
+  return null;                  // fall tillbaka till window
+}
+
+function showEmptyState() {
+  nutritionOutput.innerHTML = `
+    <div id="emptyState" class="empty-state">
+      <h2>Välkommen till Kostplaneraren</h2>
+      <p>Skriv i sökfältet ovan för att börja. Exempel: <em>ägg</em>, <em>kyckling</em>, <em>broccoli</em>.</p>
+    </div>
+    <div id="resultsCards" hidden></div>
+    <div class="loadmore-bar">
+      <button id="loadMoreBtn" style="display:none;">Visa fler</button>
+    </div>`;
+}
+
+function showNoHits(term) {
+  nutritionOutput.innerHTML = `
+    <div class="empty-state">
+      <h2>Inga träffar</h2>
+      <p>Hittade inget som matchar <strong>${term}</strong>. Prova ett annat ord.</p>
+    </div>
+    <div id="resultsCards" hidden></div>
+    <div class="loadmore-bar">
+      <button id="loadMoreBtn" style="display:none;">Visa fler</button>
+    </div>`;
+}
+
 
 const dietSelect = document.getElementById('dietSelect');
 dietSelect?.addEventListener('change', () => {
   const v = dietSelect.value;
-  dietFilter =
-    v === 'lchf5'  ? { type: 'lchf', carbMax: 5 } :
-    v === 'lchf10' ? { type: 'lchf', carbMax: 10 } :
-                     { type: 'all',  carbMax: Infinity };
+  dietFilter = { type: v };
 
   // Kör om aktuell sökning så listan uppdateras med filtret
   doSearch(searchInput.value);
@@ -94,13 +126,16 @@ function renderInit(list, version, signal) {
   renderedCount = 0;
   isAppending = false;
 
-  // Töm och lägg in "Visa fler"-knapp + sentinel
-  nutritionOutput.innerHTML = `
-    <div id="resultsCards"></div>
-    <div style="text-align:center; margin:12px 0;">
-      <button id="loadMoreBtn" style="display:none;">Visa fler</button>
-    </div>
-  `;
+  // Se till att scaffold finns (empty-state skapar resultsCards + knapp)
+  if (!document.getElementById('resultsCards')) {
+    showEmptyState();
+  }
+  // Rensa tidigare kort för ny rendering
+  const cardsWrap = document.getElementById('resultsCards');
+  if (cardsWrap) cardsWrap.innerHTML = '';
+  // Se till att knappen börjar dold
+  const btn = document.getElementById('loadMoreBtn');
+  if (btn) btn.style.display = 'none';
 
   // Skapa/injicera sentinel för infinite scroll
   sentinel = document.createElement('div');
@@ -109,14 +144,20 @@ function renderInit(list, version, signal) {
   nutritionOutput.appendChild(sentinel);
 
   // Koppla knapp
-  const btn = document.getElementById('loadMoreBtn');
-  btn.onclick = () => renderNextChunk(version, signal);
+  if (btn) btn.onclick = async () => {
+   btn.disabled = true;
+   const oldText = btn.textContent;
+   btn.textContent = 'Laddar…';
+   await renderNextChunk(version, signal);
+   btn.disabled = false;
+   btn.textContent = oldText;
+ };
 
   setupInfiniteScroll(version, signal);
   renderNextChunk(version, signal); // första chunk
 }
 
-function renderNextChunk(version, signal) {
+async function renderNextChunk(version, signal) {
   if (isAppending) return;
   if (renderedCount >= currentList.length) return;
 
@@ -128,19 +169,23 @@ function renderNextChunk(version, signal) {
   const chunk = currentList.slice(start, end);
 
   // 🔑 Append bara nya kort – rör inte redan renderat
-  renderFoodCardsAppend(chunk, version, signal).then(() => {
-    renderedCount = end;
-    isAppending = false;
+  await renderFoodCardsAppend(chunk, version, signal);
+  renderedCount = end;
+  isAppending = false;
+  // Dölj tom-state när vi ska visa resultat
+  document.getElementById('emptyState')?.remove();
 
-    // Visa/hide knappen beroende på om allt är renderat
-    const btn = document.getElementById('loadMoreBtn');
-    if (btn) btn.style.display = (renderedCount < currentList.length) ? 'inline-block' : 'none';
 
-    // Flytta sentinel sist så IO triggar när vi når botten igen
-    if (sentinel && sentinel.parentNode !== nutritionOutput) {
-      nutritionOutput.appendChild(sentinel);
-    }
-  });
+  // Visa/hide knappen beroende på om allt är renderat
+  const btn = document.getElementById('loadMoreBtn');
+  if (btn) btn.style.display = (renderedCount < currentList.length) ? 'inline-block' : 'none';
+
+  // Flytta sentinel sist så IO triggar när vi når botten igen
+  if (sentinel && sentinel.parentNode !== nutritionOutput) {
+    nutritionOutput.appendChild(sentinel);
+  }
+  // Om IO finns: se till att den observerar aktuell sentinel
+  if (io && sentinel) io.observe(sentinel);
 }
 
 function setupInfiniteScroll(version, signal) {
@@ -152,11 +197,12 @@ function setupInfiniteScroll(version, signal) {
   }
   if (io) io.disconnect();
 
+  const scrollRoot = getScrollRoot(); // 👈 dynamiskt: .main-left eller window
   io = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) renderNextChunk(version, signal);
     });
-  }, { root: null, rootMargin: '800px', threshold: 0 });
+  }, { root: scrollRoot, rootMargin: '800px', threshold: 0 });
 
   if (sentinel) io.observe(sentinel);
 }
@@ -227,9 +273,14 @@ function setDrawerOpen(open) {
    }
    // efter mount: justera höjdbegränsning
    requestAnimationFrame(adjustSelectedListHeight);
+
+  // Root kan ha ändrats (mobil ↔ desktop), bygg om IO
+  setupInfiniteScroll(currentSearchVersion, currentAbortController?.signal);
+
  }
 window.addEventListener("resize", syncDrawerMount);
 document.addEventListener("DOMContentLoaded", syncDrawerMount);
+document.addEventListener("DOMContentLoaded", () => { showEmptyState(); booted = true; });
 
 let foodData = [];
 let selectedFoods = [];
@@ -324,9 +375,11 @@ fetchAllFoods()
   .then(list => {
     foodData = list;
     
-   nutritionOutput.innerHTML = `
-  <div id="resultsCards"></div>
-  <div class="loadmore-bar"><button id="loadMoreBtn" style="display:none;">Visa fler</button></div>`;
+    // Låt tom-state ligga kvar tills användaren söker.
+    // Om du vill återställa tom-state när data kommit första gången:
+    if (!document.getElementById('resultsCards')) {
+      showEmptyState();
+    }
   })
   .catch(err => console.error("Fel vid hämtning av alla livsmedel:", err));
 
@@ -355,12 +408,18 @@ function doSearch(rawTerm) {
   if (!lastSearchTerm) {
     // Tillbaka till hela listan (paginerat)
     renderInit(foodData, currentSearchVersion, currentAbortController.signal);
+    scrollToResultsTop();   // ⬅️ skrolla upp även vid tom sökning
     return;
   }
 
   const filteredData = foodData
     .filter(item => item.namn.toLowerCase().includes(lastSearchTerm))
     .sort((a, b) => compareBySearch(a, b, lastSearchTerm));
+
+  if (filteredData.length === 0) {
+    showNoHits(lastSearchTerm);
+    return;
+  }
 
   renderInit(filteredData, currentSearchVersion, currentAbortController.signal);
   scrollToResultsTop();
@@ -384,8 +443,26 @@ searchInput.addEventListener("keydown", function (event) {
   }
 });
 
+function buildFilterPredicate(filterType) {
+  switch (filterType) {
+    case 'keto3':   return n => n.carbs <= 3;
+    case 'lchf5':   return n => n.carbs <= 5;
+    case 'lchf10':  return n => n.carbs <= 10;
+    case 'hp20':    return n => n.protein >= 20;
+    case 'lean':    return n => n.protein >= 20 && n.fat <= 5;
+    case 'lc50':    return n => n.kcal <= 50;
+    case 'hf15':    return n => n.fat >= 15;
+    case 'fiber5':  return n => (n.fiber ?? 0) >= 5;
+    case 'sugar5':  return n => (n.sugar ?? 0) <= 5;
+    case 'all':
+    default:        return _ => true;
+  }
+}
+
 async function renderFoodCardsAppend(data, version = null, signal = null) {
   const cardsRoot = document.getElementById('resultsCards') || nutritionOutput;
+  const cardsWrap = document.getElementById('resultsCards');
+  if (cardsWrap && cardsWrap.hasAttribute('hidden')) cardsWrap.removeAttribute('hidden');
 
   // Skelettkort
   for (const food of data) {
@@ -435,16 +512,27 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
         return item ? item.varde : 0;
       };
 
-      const energiKcal   = getEnergyKcal();
+      const energiKcal = getEnergyKcal();
       const kolhydrater  = getValue("kolhydrater");
-      // LCHF-filter: om inte godkänd – ta bort skelettkortet och hoppa över
-      if (!passesDietFilter(kolhydrater)) {
-        const skipCard = document.getElementById(`food-${food.id}`);
-        if (skipCard) skipCard.remove();
-        return; // rendera inte kortet
-      }
       const fett         = getValue("fett");
       const protein      = getValue("protein");
+      const fiber        = getValue("fiber");   // matchar "Kostfiber"/"fiber" via includes
+      const sugar        = getValue("socker");  // matchar "Sockerarter"
+
+      const predicate = buildFilterPredicate(dietFilter.type || 'all');
+      const pass = predicate({
+       kcal: energiKcal,
+       carbs: kolhydrater,
+       fat: fett,
+       protein: protein,
+       fiber: fiber,
+       sugar: sugar
+      });
+      if (!pass) {
+      const skipCard = document.getElementById(`food-${food.id}`);
+       if (skipCard) skipCard.remove();
+       return;
+     }
 
       const card = document.getElementById(`food-${food.id}`);
       if (!card) return;
