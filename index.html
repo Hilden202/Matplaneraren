@@ -75,7 +75,15 @@
       <h1 class="site-title">Kostplaneraren.se</h1>
       <p class="site-sub">Planera måltider med näringsdata</p>
        <a class="site-credits" href="https://hildenmedia.se/" target="_blank" rel="noopener">© HildenMedia</a>
-    <div class="search-row">
+       <div class="search-row">
+      <div class="diet-filter">
+      <label for="dietSelect" style="margin-right:6px;">Filter:</label>
+      <select id="dietSelect">
+        <option value="all">Alla livsmedel</option>
+        <option value="lchf5">LCHF strikt (≤5 g/100g)</option>
+        <option value="lchf10">LCHF liberal (≤10 g/100g)</option>
+      </select>
+    </div>
       <input type="text" id="foodInput" placeholder="Sök efter livsmedel...">
       <button type="button" id="clearSearch" class="clear-btn" aria-label="Rensa sökfält">
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -83,6 +91,7 @@
     </div>
     </div>
   </form>
+
 </header>
 
 <main class="page">

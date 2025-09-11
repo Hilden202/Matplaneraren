@@ -22,6 +22,19 @@ let renderedCount = 0;
 let isAppending = false;
 let io = null;
 let sentinel = null;
+let dietFilter = { type: 'all', carbMax: Infinity };
+
+const dietSelect = document.getElementById('dietSelect');
+dietSelect?.addEventListener('change', () => {
+  const v = dietSelect.value;
+  dietFilter =
+    v === 'lchf5'  ? { type: 'lchf', carbMax: 5 } :
+    v === 'lchf10' ? { type: 'lchf', carbMax: 10 } :
+                     { type: 'all',  carbMax: Infinity };
+
+  // Kör om aktuell sökning så listan uppdateras med filtret
+  doSearch(searchInput.value);
+});
 
 const clearBtn = document.getElementById("clearSearch");
 if (clearBtn) {
@@ -64,6 +77,10 @@ const rightInner = document.querySelector(".right-inner");
 const selectedFoodsListEl = document.getElementById("selectedFoodsList");
 const summaryEl = document.getElementById("summary");
 const sidebarHeader = document.querySelector(".sidebar-header");
+
+function passesDietFilter(carbsPer100) {
+  return carbsPer100 <= dietFilter.carbMax;
+}
 
 function onModalBackdropClick(e) {
   // Stäng om klicket/touchen inte var inne i rutan
@@ -421,6 +438,12 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
 
       const energiKcal   = getEnergyKcal();
       const kolhydrater  = getValue("kolhydrater");
+      // LCHF-filter: om inte godkänd – ta bort skelettkortet och hoppa över
+      if (!passesDietFilter(kolhydrater)) {
+        const skipCard = document.getElementById(`food-${food.id}`);
+        if (skipCard) skipCard.remove();
+        return; // rendera inte kortet
+      }
       const fett         = getValue("fett");
       const protein      = getValue("protein");
 

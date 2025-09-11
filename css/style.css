@@ -760,3 +760,29 @@ button:not(.clear-btn):hover{
     border-radius: 12px;
   }
 }
+
+/* Gör filterlableln ljus på mörk header */
+.header-top .diet-filter label{
+  color: var(--text-on-slate);   /* vit */
+  font-weight: 600;
+  opacity: .95;
+}
+
+/* Stil på selecten – ljus pillerlook */
+.header-top .diet-filter select{
+  background: #fff;
+  color: #111;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
+.diet-filter{
+  display:flex; align-items:center; gap:8px;
+  margin:6px 0 8px;
+}
+@media (max-width:520px){
+  .diet-filter{ flex-wrap:wrap; font-size:14px; }
+  .diet-filter select{ width:100%; }
+}
