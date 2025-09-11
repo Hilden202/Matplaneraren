@@ -571,7 +571,7 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
       const energiKcal  = norm.energy_kcal?.value ?? getEnergyKcal();
       const kolhydrater = norm.carbs_g?.value ?? 0;
 
-      let fett = norm.fat_g?.value;                     // 👈 byt från const → let
+      let fett = norm.fat_g?.value;
       if (!Number.isFinite(fett)) {
         const parts = [
           norm.fat_saturated_g?.value,
@@ -653,8 +653,24 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
         setTimeout(() => card.classList.remove("highlight"), 1800);
       }
 
-      const openModal = () => showFoodModal(food, groupName, energiKcal, kolhydrater, fett, protein);
+      // Samla allt vi vill visa/beräkna i modalen (per 100 g)
+      const detail = {
+        energy_kcal:  energiKcal,
+        carbs_g:      kolhydrater,
+        fat_g:        fett,
+        protein_g:    protein,
+        fiber_g:      fiber,
+        sugar_g:      sugarValue,
+        sugar_label:  sugarLabel,
+        salt_g:       salt_g,
+        satFat_g:     satFat_g,
+        netCarbs_g:   netCarbs_g
+      };
+
+      // Öppna modalen med objektet istället för 6 separata parametrar
+      const openModal = () => showFoodModal(food, groupName, detail);
       card.addEventListener("click", openModal);
+
       card.addEventListener("keydown", (ev) => {
         if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openModal(); }
       });
@@ -671,29 +687,32 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
   }));
 }
 
-function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = null) {
-    const qty = quantity !== null ? quantity : (parseInt(document.getElementById("quantity" + id).value, 10) || 100);
+function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = null, extras = {}) {
+  const qty = quantity !== null ? quantity : (parseInt(document.getElementById("quantity" + id).value, 10) || 100);
 
-    const existingItem = selectedFoods.find(item => item.id === id);
+  const existingItem = selectedFoods.find(item => item.id === id);
 
-    if (existingItem) {
-        existingItem.quantity += qty;
-    } else {
-        selectedFoods.push({
-            id: id,
-            name: namn,
-            quantity: qty,
-            energiKcal: energiKcal,
-            kolhydrater: kolhydrater,
-            fett: fett,
-            protein: protein,
-        });
-    }
+  if (existingItem) {
+    existingItem.quantity += qty;
+  } else {
+    selectedFoods.push({
+      id, name: namn, quantity: qty,
+      energiKcal, kolhydrater, fett, protein,
+      // nya fält (kan vara null)
+      fiber:    extras.fiber ?? null,
+      sugar:    extras.sugar ?? null,
+      sugar_label: extras.sugar_label ?? null,
+      salt:     extras.salt ?? null,
+      satFat:   extras.satFat ?? null,
+      netCarbs: extras.netCarbs ?? null
+    });
+  }
 
-    updateSelectedFoodsList();
-    adjustSelectedListHeight();
-    updateSummary();
+  updateSelectedFoodsList();
+  adjustSelectedListHeight();
+  updateSummary();
 }
+
 
 function updateSelectedFoodsList() {
     foodList.innerHTML = "";
@@ -769,28 +788,57 @@ function decreaseQuantity(index) {
 }
 
 function updateSummary() {
-    let totalEnergy = 0;
-    let totalCarbs = 0;
-    let totalFat = 0;
-    let totalProtein = 0;
+  // Totals
+  let totalEnergy = 0, totalCarbs = 0, totalFat = 0, totalProtein = 0;
+  let totalFiber = 0, totalSugar = 0, totalSalt = 0, totalSatFat = 0, totalNetCarbs = 0;
 
-    for (const item of selectedFoods) {
+  for (const item of selectedFoods) {
+    const f = (item.quantity || 0) / 100;
 
-        // Omvandla gram till procent (100 g = 100%)
-        const factor = item.quantity / 100;
+    totalEnergy  += (item.energiKcal   || 0) * f;
+    totalCarbs   += (item.kolhydrater  || 0) * f;
+    totalFat     += (item.fett         || 0) * f;
+    totalProtein += (item.protein      || 0) * f;
 
-        totalEnergy += item.energiKcal * factor;
-        totalCarbs += item.kolhydrater * factor;
-        totalFat += item.fett * factor;
-        totalProtein += item.protein * factor;
+    if (Number.isFinite(item.fiber))     totalFiber    += item.fiber    * f;
+    if (Number.isFinite(item.sugar))     totalSugar    += item.sugar    * f;
+    if (Number.isFinite(item.salt))      totalSalt     += item.salt     * f;
+    if (Number.isFinite(item.satFat))    totalSatFat   += item.satFat   * f;
+
+    // Netto-kolhydrater: använd lagrat värde om det finns, annars carbs - fiber
+    if (Number.isFinite(item.netCarbs)) {
+      totalNetCarbs += item.netCarbs * f;
+    } else if (Number.isFinite(item.kolhydrater) && Number.isFinite(item.fiber)) {
+      totalNetCarbs += Math.max(0, item.kolhydrater - item.fiber) * f;
     }
+  }
 
-    document.getElementById("totalEnergy").textContent = "Total energi: " + totalEnergy.toFixed(1) + " kcal";
-    document.getElementById("totalCarbs").textContent = "Totala kolhydrater: " + totalCarbs.toFixed(1) + " g";
-    document.getElementById("totalFat").textContent = "Totalt fett: " + totalFat.toFixed(1) + " g";
-    document.getElementById("totalProtein").textContent = "Totalt protein: " + totalProtein.toFixed(1) + " g";
-    // Efter summering: justera listans maxhöjd (mobil/desktop)
-    adjustSelectedListHeight();
+  const fmt1 = n => (Math.round(n * 10) / 10).toFixed(1);
+
+  document.getElementById("totalEnergy").textContent  = `Total energi: ${fmt1(totalEnergy)} kcal`;
+  document.getElementById("totalCarbs").textContent   = `Totala kolhydrater: ${fmt1(totalCarbs)} g`;
+  document.getElementById("totalFat").textContent     = `Totalt fett: ${fmt1(totalFat)} g`;
+  document.getElementById("totalProtein").textContent = `Totalt protein: ${fmt1(totalProtein)} g`;
+
+  // Kommatecken-separerad rad med extra-summeringar
+  const parts = [];
+  if (totalFiber > 0)     parts.push(`Fiber: ${fmt1(totalFiber)} g`);
+  if (totalSugar > 0)     parts.push(`Socker: ${fmt1(totalSugar)} g`);
+  if (totalSalt > 0)      parts.push(`Salt: ${fmt1(totalSalt)} g`);
+  if (totalSatFat > 0)    parts.push(`Mättat fett: ${fmt1(totalSatFat)} g`);
+  if (totalNetCarbs > 0)  parts.push(`Netto-kolhydrater: ${fmt1(totalNetCarbs)} g`);
+
+  let metaEl = document.getElementById("summaryMeta");
+  if (!metaEl) {
+    metaEl = document.createElement("p");
+    metaEl.id = "summaryMeta";
+    metaEl.className = "summary-meta";
+    document.getElementById("summary").appendChild(metaEl);
+  }
+  metaEl.textContent = parts.join(', ');
+
+  // Håller höjder i schack på mobil/desktop
+  adjustSelectedListHeight();
 }
 
 function syncRow(index, qty, numberEl, sliderEl, labelEl) {
@@ -831,9 +879,16 @@ function onNumber(index, numberEl) {
 }
 
 
-function showFoodModal(food, group, energy, carbs, fat, protein) {
+function showFoodModal(food, group, d) {
   const modal = document.getElementById("foodModal");
   const body  = document.getElementById("modalBody");
+
+  const extraRows = [];
+  if (Number.isFinite(d.fiber_g))     extraRows.push(`<li>Fiber: <strong><span id="calcFiber">0</span> g</strong></li>`);
+  if (Number.isFinite(d.sugar_g))     extraRows.push(`<li>${d.sugar_label ?? 'Socker'}: <strong><span id="calcSugar">0</span> g</strong></li>`);
+  if (Number.isFinite(d.salt_g))      extraRows.push(`<li>Salt: <strong><span id="calcSalt">0</span> g</strong></li>`);
+  if (Number.isFinite(d.satFat_g))    extraRows.push(`<li>Mättat fett: <strong><span id="calcSatFat">0</span> g</strong></li>`);
+  if (Number.isFinite(d.netCarbs_g))  extraRows.push(`<li>Netto-kolhydrater: <strong><span id="calcNetCarbs">0</span> g</strong></li>`);
 
   body.innerHTML = `
     <h2>${food.namn}</h2>
@@ -841,7 +896,7 @@ function showFoodModal(food, group, energy, carbs, fat, protein) {
 
     <p class="per100">
       <em>Per 100 g:</em>
-      Energi: ${energy} kcal · Kolhydrater: ${carbs} g · Fett: ${fat} g · Protein: ${protein} g
+      Energi: ${d.energy_kcal} kcal · Kolhydrater: ${d.carbs_g} g · Fett: ${d.fat_g} g · Protein: ${d.protein_g} g
     </p>
 
     <h3 style="margin-top:10px">Beräknat för <span id="modalQLabel">100</span> g</h3>
@@ -850,6 +905,7 @@ function showFoodModal(food, group, energy, carbs, fat, protein) {
       <li>Kolhydrater: <strong><span id="calcCarbs">0</span> g</strong></li>
       <li>Fett: <strong><span id="calcFat">0</span> g</strong></li>
       <li>Protein: <strong><span id="calcProtein">0</span> g</strong></li>
+      ${extraRows.join('')}
     </ul>
 
     <div class="modal-qty">
@@ -863,14 +919,20 @@ function showFoodModal(food, group, energy, carbs, fat, protein) {
     </div>
   `;
 
-  // refs
   const num    = document.getElementById("modalQuantityNumber");
   const sld    = document.getElementById("modalQuantitySlider");
   const qLabel = document.getElementById("modalQLabel");
-  const eEl    = document.getElementById("calcEnergy");
-  const cEl    = document.getElementById("calcCarbs");
-  const fEl    = document.getElementById("calcFat");
-  const pEl    = document.getElementById("calcProtein");
+
+  const eEl = document.getElementById("calcEnergy");
+  const cEl = document.getElementById("calcCarbs");
+  const fEl = document.getElementById("calcFat");
+  const pEl = document.getElementById("calcProtein");
+
+  const fiEl = document.getElementById("calcFiber");
+  const suEl = document.getElementById("calcSugar");
+  const saEl = document.getElementById("calcSalt");
+  const sfEl = document.getElementById("calcSatFat");
+  const ncEl = document.getElementById("calcNetCarbs");
 
   const round1 = (n) => Math.round(n * 10) / 10;
 
@@ -880,12 +942,19 @@ function showFoodModal(food, group, energy, carbs, fat, protein) {
     if (parseInt(sld.value, 10) !== val) sld.value = val;
     if (val > parseInt(sld.max, 10)) sld.max = val;
 
-    const factor = val / 100;
+    const f = val / 100;
     qLabel.textContent = String(val);
-    eEl.textContent = round1(energy  * factor).toFixed(1);
-    cEl.textContent = round1(carbs   * factor).toFixed(1);
-    fEl.textContent = round1(fat     * factor).toFixed(1);
-    pEl.textContent = round1(protein * factor).toFixed(1);
+
+    eEl.textContent = round1(d.energy_kcal  * f).toFixed(1);
+    cEl.textContent = round1(d.carbs_g      * f).toFixed(1);
+    fEl.textContent = round1(d.fat_g        * f).toFixed(1);
+    pEl.textContent = round1(d.protein_g    * f).toFixed(1);
+
+    if (fiEl && Number.isFinite(d.fiber_g))    fiEl.textContent = round1(d.fiber_g * f).toFixed(1);
+    if (suEl && Number.isFinite(d.sugar_g))    suEl.textContent = round1(d.sugar_g * f).toFixed(1);
+    if (saEl && Number.isFinite(d.salt_g))     saEl.textContent = round1(d.salt_g  * f).toFixed(1);
+    if (sfEl && Number.isFinite(d.satFat_g))   sfEl.textContent = round1(d.satFat_g * f).toFixed(1);
+    if (ncEl && Number.isFinite(d.netCarbs_g)) ncEl.textContent = round1(d.netCarbs_g * f).toFixed(1);
   };
 
   num.addEventListener("input", () => updateCalc(parseInt(num.value, 10) || 0));
@@ -893,28 +962,30 @@ function showFoodModal(food, group, energy, carbs, fat, protein) {
 
   document.getElementById("modalAddBtn").onclick = () => {
     const q = parseInt(num.value, 10) || 0;
-    addFood(food.id, food.namn, energy, carbs, fat, protein, q);
+    addFood(
+      food.id, food.namn,
+      d.energy_kcal, d.carbs_g, d.fat_g, d.protein_g,
+      q,
+      { fiber: d.fiber_g, sugar: d.sugar_g, sugar_label: d.sugar_label, salt: d.salt_g, satFat: d.satFat_g, netCarbs: d.netCarbs_g }
+    );
     closeFoodModal();
   };
 
-    modal.classList.add('open');
-    modal.removeAttribute('hidden');
-    modal.setAttribute('aria-hidden','false');
+  modal.classList.add('open');
+  modal.removeAttribute('hidden');
+  modal.setAttribute('aria-hidden','false');
 
-  // Stäng med kryss
   modal.querySelector(".close").onclick = closeFoodModal;
-
-  // Stäng genom att trycka utanför (iOS + desktop)
   modal.addEventListener('click', onModalBackdropClick);
   modal.addEventListener('touchstart', onModalBackdropClick, { passive: true });
 
-  // Stäng med ESC
   const onEsc = (ev) => { if (ev.key === 'Escape') closeFoodModal(); };
   document.addEventListener('keydown', onEsc);
   modal._onEsc = onEsc;
 
   updateCalc(100);
 }
+
 
 function closeFoodModal() {
   const modal = document.getElementById("foodModal");
