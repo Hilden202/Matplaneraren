@@ -323,14 +323,13 @@ async function fetchAllFoods() {
 fetchAllFoods()
   .then(list => {
     foodData = list;
-    // Starta paginerad rendering av alla
-    if (currentAbortController) currentAbortController.abort();
-    currentAbortController = new AbortController();
-    currentSearchVersion++;
-
-    renderInit(foodData, currentSearchVersion, currentAbortController.signal);
+    
+   nutritionOutput.innerHTML = `
+  <div id="resultsCards"></div>
+  <div class="loadmore-bar"><button id="loadMoreBtn" style="display:none;">Visa fler</button></div>`;
   })
   .catch(err => console.error("Fel vid hämtning av alla livsmedel:", err));
+
 
 function scrollToResultsTop() {
   // Om .main-left skrollar (overflow-y:auto), skrolla den.

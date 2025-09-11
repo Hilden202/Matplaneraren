@@ -51,6 +51,7 @@ html {
   position: relative;
   min-height: var(--header-meta-h);
 }
+
 .header-meta .data-badge {
   position: absolute;
   top: 6px;
@@ -80,20 +81,6 @@ html {
   width: 100%;           /* fyll tillgängligt utrymme */
   margin: 0;             /* ingen extra marginal */
 }
-
-/* Rad runt input + kryss så krysset kan positioneras rätt */
-.search-row {
-  position: relative;
-  max-width: 680px;
-  width: 100%;
-}
-
-/* Säkerställ att input fyller raden */
-.search-row #foodInput {
-  width: 100%;
-  max-width: 100%;
-}
-
 
 @media (max-width: 520px){
   .header-meta { min-height: 48px; }
@@ -321,6 +308,20 @@ h3 {
   box-shadow: 0 0 0 3px rgba(0,128,128,.22);
 }
 
+/* Rad runt input + kryss så krysset kan positioneras rätt */
+.search-row {
+  position: relative;
+  max-width: 680px;
+  width: 100%;
+}
+
+/* Säkerställ att input fyller raden */
+.search-row #foodInput {
+  width: 100%;
+  max-width: 100%;
+}
+
+
 /* Clear-knapp (×) inne i sökrutan – positioneras relativt .search-row */
 .search-row .clear-btn {
   position: absolute;
@@ -381,6 +382,22 @@ button:not(.clear-btn):hover{
 
 .adjust-button.remove:hover {
   color: #a62828;
+}
+
+/* === Mobile (telefoner & små tablets) === */
+@media (max-width: 768px) {
+  /* gör höjden globalt tillgänglig */
+  :root { --drawer-h: 56px; }
+
+  /* ge plats så sista knappen inte hamnar bakom handtaget */
+  #nutritionOutput {
+    padding-bottom: calc(var(--drawer-h) + env(safe-area-inset-bottom) + 16px);
+  }
+
+  /* se till att IO-sentineln hamnar ovanför handtaget */
+  #resultsSentinel {
+    margin-bottom: calc(var(--drawer-h) + env(safe-area-inset-bottom) + 12px);
+  }
 }
 
 .food-card .loading {
