@@ -137,15 +137,23 @@ html {
   flex: 1;
   /* låt dokumentet skrolla, inte vänsterspalten */
 }
+
 .main-right {
+  position: sticky;
+  top: calc(var(--header-h) + 8px);
+  height: calc(100vh - var(--header-h) - 8px); /* exakt viewportyta under headern */
   flex: 0 0 clamp(360px, 46vw, 560px);
   box-sizing: border-box;
-  position: sticky;
-  top: var(--header-h);
-  height: 100vh;
-  max-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
   padding-left: 10px;
+  margin: 10px 0;
+
+  /* En enda scroll i kolumnen */
   overflow-y: auto;
+  overflow-x: hidden;   /* valfritt – hindra sidleds-bleed */
 }
 
 .food-card {
@@ -482,16 +490,6 @@ button:not(.clear-btn):hover{
   overflow-y: auto;
 }
 
-.main-right{
-  position: sticky;
-  top: calc(var(--header-h) + 8px);            /* never slide under banner */
-  height: calc(100vh - var(--header-h) - 8px); /* exact viewport below banner */
-  display: flex;
-  flex-direction: column;
-  padding-left: 10px;
-  overflow: hidden;                             /* children handle the scroll */
-}
-
 /* rubrik/toolbar för listan, ligger utanför listans scroll */
 .sidebar-header{
   position: sticky;     /* sitter fast i högerkolumnens/drawerns topp */
@@ -516,11 +514,10 @@ button:not(.clear-btn):hover{
   height:auto;    /* låt innehållet styra (din önskan) */
 }
 
-#selectedFoodsList{
-  overflow-y: auto;
-  max-height: none;     /* styrs av JS */
-  border: 1px solid #ccc;
-  background: #f0f0f0;
+/* Listan ska inte ha egen scroll eller maxhöjd */
+#selectedFoodsList {
+  overflow: visible;
+  max-height: none;
 }
 
 /* ta bort listboxens “dubbla” paddning om du hade den där */
