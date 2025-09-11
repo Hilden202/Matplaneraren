@@ -147,14 +147,22 @@ html {
 
   display: flex;
   flex-direction: column;
-
   padding-left: 10px;
   margin: 10px 0;
+  overflow: hidden;  
 
   /* En enda scroll i kolumnen */
   overflow-y: auto;
   overflow-x: hidden;   /* valfritt – hindra sidleds-bleed */
 }
+
+/* Enradslayout – papperskorgen alltid längst till höger */
+.food-list-item{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
+.food-list-item > *{ min-width:0; }
+.quantity-slider{ flex:1 1 160px; min-width:120px; }
+.quantity-input{ flex:0 0 55px; }
+.food-amount{ flex:1 1 140px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.adjust-button.remove{ margin-left:auto; flex:0 0 auto; }
 
 .food-card {
   scroll-margin-top: 185px; 
@@ -206,10 +214,14 @@ input[type="number"] {
   border: 1px solid #ddd;
 }
 
+/* ersätt denna */
 h3 {
   margin: 0;
-  font-size: 25px;
+  /* var: font-size: 25px; */
+  font-size: clamp(18px, 2.4vw, 25px);  /* krymper på mobil */
+  line-height: 1.25;
 }
+
 
 [hidden] { display: none !important; }
 
@@ -356,23 +368,9 @@ button:not(.clear-btn):hover{
   transform: scale(1.03);
 }
 
-.food-list-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-  gap: 10px;
-}
-
-.quantity-slider {
-  flex: 1;
-  accent-color: teal;
-}
-
-.food-amount {
-  width: 150px;
-}
-
 .adjust-button.remove {
+  margin-left: auto;           /* skjuter den till höger */
+  flex: 0 0 auto;
   background: transparent;
   border: none;
   color: #cc3333;
@@ -399,16 +397,23 @@ button:not(.clear-btn):hover{
 .food-list-item {
   display: flex;
   align-items: center;
-  gap: 10px;
   margin-bottom: 12px;
+  gap: 10px;
+  flex-wrap: nowrap; 
 }
 
+/* Viktigt: låt flex-barn få krympa */
+.food-list-item > * { min-width: 0; }
+
 .quantity-slider {
-  flex: 1;
+  flex: 1 1 160px;             /* växer, krymper, start-bredd */
+  min-width: 120px;
   accent-color: teal;
+
 }
 
 .quantity-input {
+  flex: 0 0 55px;
   width: 90px;
   padding: 6px 8px;
   border: 1px solid #ccc;
@@ -417,7 +422,12 @@ button:not(.clear-btn):hover{
 }
 
 .food-amount {
-  min-width: 180px;
+  flex: 1 1 140px;
+  min-width: 0;                /* ⬅️ nyckeln för att få krympa i flex */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 150px;
 }
 
 /* === Modal: mängdkontroller === */
@@ -479,6 +489,11 @@ button:not(.clear-btn):hover{
   flex-shrink: 0;
 }
 
+#summary p {
+  font-size: clamp(14px, 1.9vw, 16px);
+  line-height: 1.35;
+}
+
 /* --- Desktop layout --- */
 .page {
   display: flex;
@@ -516,6 +531,8 @@ button:not(.clear-btn):hover{
 
 /* Listan ska inte ha egen scroll eller maxhöjd */
 #selectedFoodsList {
+  overflow-y: auto;
+  overflow-x: hidden;          /* ⬅️ inga horisontella scrollbars */
   overflow: visible;
   max-height: none;
 }
@@ -526,9 +543,6 @@ button:not(.clear-btn):hover{
   padding: 10px;
 }
 
-#summary {
-  flex-shrink: 0;
-}
 
 /* === Mobil: aktivera drawer & dölja desktop-högerkolumn === */
 /* Behåll drawer-lagret fast i botten */
@@ -621,7 +635,11 @@ button:not(.clear-btn):hover{
   .drawer-content #summary { border-top: 1px solid #e3e3e3; }
 
   /* Kompaktare UI för mobil */
-  .drawer-content h3 { font-size: 20px; }
+.drawer-content h3,
+.sidebar-header h3,
+#summary h3 {
+  font-size: clamp(18px, 2.4vw, 24px);
+}
   .quantity-input { font-size: 13px; padding: 6px 5px; max-width: 100%; box-sizing: border-box; }
   .food-list-item { gap: 8px; }
   button, .add-button, #clearListButton {
