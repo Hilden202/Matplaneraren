@@ -820,3 +820,23 @@ button:not(.clear-btn):hover{
   margin:0;
   color:#444;
 }
+
+.food-card .extras{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:6px;
+}
+.food-card .chip{
+  display:inline-block;
+  padding:3px 8px;
+  border:1px solid #e5e7eb;
+  border-radius:9999px;
+  background:#eef6f6;
+  font-size:12px;
+  line-height:1.2;
+  white-space:nowrap;
+}
+@media (max-width:520px){
+  .food-card .chip{ font-size:11.5px; }
+}

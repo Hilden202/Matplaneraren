@@ -99,6 +99,14 @@ if (clearBtn) {
   });
 }
 
+// Hjälpare: hämta första träffen vars namn innehåller något av nycklarna
+function pickValue(nutritionData, keys) {
+  const hit = nutritionData.find(n => {
+    const nm = (n.namn || "").toLowerCase();
+    return keys.some(k => nm.includes(k));
+  });
+  return hit ? Number(hit.varde) : null;
+}
 
 // (valfritt) Stäng även på ESC
 document.addEventListener("keydown", (e) => {
@@ -109,6 +117,20 @@ const rightInner = document.querySelector(".right-inner");
 const selectedFoodsListEl = document.getElementById("selectedFoodsList");
 const summaryEl = document.getElementById("summary");
 const sidebarHeader = document.querySelector(".sidebar-header");
+
+function makeFinder(nutritionData){
+  const rows = (nutritionData || []).map(n => ({
+    name: (n.namn || "").toLowerCase().trim(),
+    rawName: n.namn || "",
+    value: Number(n.varde),
+    unit: n.enhet || ""
+  }));
+  return (aliases) => {
+    const al = aliases.map(a => a.toLowerCase());
+    const hit = rows.find(r => al.some(a => r.name.includes(a)));
+    return hit ? { value: hit.value, unit: hit.unit, label: hit.rawName } : null;
+  };
+}
 
 function passesDietFilter(carbsPer100) {
   return carbsPer100 <= dietFilter.carbMax;
@@ -471,6 +493,7 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
     card.id = `food-${food.id}`;
     card.setAttribute("role", "button");
     card.setAttribute("tabindex", "0");
+
     card.innerHTML = `
       <h3>${food.namn}</h3>
       <p class="loading">Laddar näringsvärden...</p>
@@ -512,31 +535,64 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
         return item ? item.varde : 0;
       };
 
-      const energiKcal = getEnergyKcal();
-      const kolhydrater  = getValue("kolhydrater");
-      const fett         = getValue("fett");
-      const protein      = getValue("protein");
-      const fiber        = getValue("fiber");   // matchar "Kostfiber"/"fiber" via includes
-      const sugar        = getValue("socker");  // matchar "Sockerarter"
+      // skapa "find" för just detta livsmedels nutritionData
+      const find = makeFinder(nutritionData);
 
+      // Normaliserad karta med svenska alias (utökad lite för robusthet)
+      const norm = {
+        energy_kcal:      find(['energi (kcal)']),
+        energy_kj:        find(['energi (kj)']),
+        carbs_g:          find(['kolhydrater, tillgängliga','kolhydrater','kolhydrat']),
+        sugars_g:         find(['sockerarter, totalt','sockerarter','socker']),
+        free_sugar_g:     find(['fritt socker']),
+        added_sugar_g:    find(['tillsatt socker']),
+        // Livsmedelsverket använder ofta "Fibrer" eller "Kostfiber"
+        fiber_g:          find(['fibrer','kostfiber','fiber']),
+        fat_g:            find(['fett, totalt','fett ','fett']),
+        fat_saturated_g:  find(['summa mättade']),
+        fat_mono_g:       find(['summa enkelomättade']),
+        fat_poly_g:       find(['summa fleromättade']),
+        protein_g:        find(['protein']),
+        salt_g:           find(['salt, nacl']),
+        sodium_mg:        find(['natrium, na']),
+        cholesterol_mg:   find(['kolesterol']),
+        water_g:          find(['vatten']),
+        alcohol_g:        find(['alkohol']),
+      };
+
+      // Kärnvärden (med fallback)
+      const energiKcal   = norm.energy_kcal?.value ?? getEnergyKcal();
+      const kolhydrater  = norm.carbs_g?.value   ?? 0;
+      const fett         = norm.fat_g?.value     ?? 0;
+      const protein      = norm.protein_g?.value ?? 0;
+      const fiber        = norm.fiber_g?.value   ?? null;
+      const sugar        = norm.sugars_g?.value  ?? null;
+
+      // Filtrera enligt valt filter
       const predicate = buildFilterPredicate(dietFilter.type || 'all');
       const pass = predicate({
-       kcal: energiKcal,
-       carbs: kolhydrater,
-       fat: fett,
-       protein: protein,
-       fiber: fiber,
-       sugar: sugar
+        kcal: energiKcal,
+        carbs: kolhydrater,
+        fat: fett,
+        protein: protein,
+        fiber: fiber,
+        sugar: sugar
       });
       if (!pass) {
-      const skipCard = document.getElementById(`food-${food.id}`);
-       if (skipCard) skipCard.remove();
-       return;
-     }
+        document.getElementById(`food-${food.id}`)?.remove();
+        return;
+      }
+
+      // Chips med “rätt” etikett (den faktiska texten från API:t)
+      const chips = [];
+      if (norm.fiber_g)  chips.push(`<span class="chip">${norm.fiber_g.label}: ${norm.fiber_g.value} ${norm.fiber_g.unit || 'g'}</span>`);
+      if (norm.sugars_g) chips.push(`<span class="chip">${norm.sugars_g.label}: ${norm.sugars_g.value} ${norm.sugars_g.unit || 'g'}</span>`);
+      const extrasHtml = chips.length ? `<div class="extras">${chips.join('')}</div>` : '';
+
 
       const card = document.getElementById(`food-${food.id}`);
       if (!card) return;
-
+     
       card.innerHTML = `
         <h3>${food.namn} <small class="per100">(per 100 g)</small></h3>
         <p><strong>Grupp:</strong> ${groupName}</p>
@@ -544,6 +600,7 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
         <p><strong>Kolhydrater:</strong> ${kolhydrater} g</p>
         <p><strong>Fett:</strong> ${fett} g</p>
         <p><strong>Protein:</strong> ${protein} g</p>
+        ${extrasHtml}
       `;
 
       if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
