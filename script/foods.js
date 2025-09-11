@@ -1,4 +1,4 @@
-const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel?offset=0&limit=2500&sprak=1";
+//const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel?offset=0&limit=2569&sprak=1";
 const foodList = document.getElementById("foodList");
 const foodListContainer = document.getElementById("foodListContainer");
 const nutritionOutput = document.getElementById("nutritionOutput");
@@ -14,6 +14,14 @@ const drawerBackdrop = mobileDrawer?.querySelector(".drawer-backdrop");
 drawerBackdrop?.addEventListener("click", () => {
   setDrawerOpen(false);                 // stänger och uppdaterar aria/overflow
 });
+
+const getPageChunk = () => (isMobile() ? 25 : 50);
+
+let currentList = [];
+let renderedCount = 0;
+let isAppending = false;
+let io = null;
+let sentinel = null;
 
 const clearBtn = document.getElementById("clearSearch");
 if (clearBtn) {
@@ -64,6 +72,78 @@ function onModalBackdropClick(e) {
   }
 }
 
+function renderInit(list, version, signal) {
+  currentList = list || [];
+  renderedCount = 0;
+  isAppending = false;
+
+  // Töm och lägg in "Visa fler"-knapp + sentinel
+  nutritionOutput.innerHTML = `
+    <div id="resultsCards"></div>
+    <div style="text-align:center; margin:12px 0;">
+      <button id="loadMoreBtn" style="display:none;">Visa fler</button>
+    </div>
+  `;
+
+  // Skapa/injicera sentinel för infinite scroll
+  sentinel = document.createElement('div');
+  sentinel.id = 'resultsSentinel';
+  sentinel.style.height = '1px';
+  nutritionOutput.appendChild(sentinel);
+
+  // Koppla knapp
+  const btn = document.getElementById('loadMoreBtn');
+  btn.onclick = () => renderNextChunk(version, signal);
+
+  setupInfiniteScroll(version, signal);
+  renderNextChunk(version, signal); // första chunk
+}
+
+function renderNextChunk(version, signal) {
+  if (isAppending) return;
+  if (renderedCount >= currentList.length) return;
+
+  isAppending = true;
+
+  const start = renderedCount;
+  const pageSize = getPageChunk();
+  const end = Math.min(start + pageSize, currentList.length);
+  const chunk = currentList.slice(start, end);
+
+  // 🔑 Append bara nya kort – rör inte redan renderat
+  renderFoodCardsAppend(chunk, version, signal).then(() => {
+    renderedCount = end;
+    isAppending = false;
+
+    // Visa/hide knappen beroende på om allt är renderat
+    const btn = document.getElementById('loadMoreBtn');
+    if (btn) btn.style.display = (renderedCount < currentList.length) ? 'inline-block' : 'none';
+
+    // Flytta sentinel sist så IO triggar när vi når botten igen
+    if (sentinel && sentinel.parentNode !== nutritionOutput) {
+      nutritionOutput.appendChild(sentinel);
+    }
+  });
+}
+
+function setupInfiniteScroll(version, signal) {
+  // Fallback till "Visa fler"-knapp om IO saknas
+  const btn = document.getElementById('loadMoreBtn');
+  if (!('IntersectionObserver' in window)) {
+    if (btn) btn.style.display = 'inline-block';
+    return;
+  }
+  if (io) io.disconnect();
+
+  io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) renderNextChunk(version, signal);
+    });
+  }, { root: null, rootMargin: '800px', threshold: 0 });
+
+  if (sentinel) io.observe(sentinel);
+}
+
 
 function setHeaderHeightVar() {
   const h = document.querySelector(".header-top")?.offsetHeight || 0;
@@ -72,9 +152,9 @@ function setHeaderHeightVar() {
 window.addEventListener("load", setHeaderHeightVar);
 window.addEventListener("resize", setHeaderHeightVar);
 
- function isMobile() {
-   return window.matchMedia("(max-width: 600px)").matches;
- }
+function isMobile() {
+  return window.matchMedia("(max-width: 768px)").matches;
+}
 
 function mountIntoDrawer() {
   if (!isMobile()) return;
@@ -199,27 +279,41 @@ async function fetchClassification(foodId) {
 
 }
 
-fetch(url)
-    .then(function (response) { return response.json(); })
-    .then(function (data) {
-        console.log("API-svar:", data);
-        if (data.livsmedel && Array.isArray(data.livsmedel)) {
-            foodData = data.livsmedel.map(function (food) {
-                return {
-                    id: food.nummer,
-                    namn: food.namn,
-                };
+async function fetchAllFoods() {
+  const limit = 2500;   // sidstorlek
+  let offset = 0;
+  let all = [];
 
-            });
-            console.log("Bearbetad foodData:", foodData);
-            renderFoodList(foodData);
-        } else {
-            console.error("Oväntad API-svarstruktur:", data);
-        }
-    })
-    .catch(function (error) {
-        console.error("Fel vid hämtning av data:", error);
-    });
+  while (true) {
+    const res = await fetch(
+      `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel?offset=${offset}&limit=${limit}&sprak=1`
+    );
+    const data = await res.json();
+
+    const batch = (data.livsmedel || []).map(food => ({
+      id: food.nummer,
+      namn: food.namn
+    }));
+
+    all.push(...batch);
+
+    if (batch.length < limit) break; // sista sidan nådd
+    offset += limit;
+  }
+  return all;
+}
+
+fetchAllFoods()
+  .then(list => {
+    foodData = list;
+    // Starta paginerad rendering av alla
+    if (currentAbortController) currentAbortController.abort();
+    currentAbortController = new AbortController();
+    currentSearchVersion++;
+
+    renderInit(foodData, currentSearchVersion, currentAbortController.signal);
+  })
+  .catch(err => console.error("Fel vid hämtning av alla livsmedel:", err));
 
 function scrollToResultsTop() {
   // Om .main-left skrollar (overflow-y:auto), skrolla den.
@@ -238,33 +332,22 @@ function doSearch(rawTerm) {
   const searchTerm = (rawTerm || "").toLowerCase();
   lastSearchTerm = searchTerm.trim();
 
-  // Tomt fält -> visa full lista igen
+  if (currentAbortController) currentAbortController.abort();
+  currentAbortController = new AbortController();
+  currentSearchVersion++;
+
   if (!lastSearchTerm) {
-    if (currentAbortController) currentAbortController.abort();
-    currentSearchVersion++;
-    renderFoodList(foodData, currentSearchVersion, null);
-    scrollToResultsTop();
+    // Tillbaka till hela listan (paginerat)
+    renderInit(foodData, currentSearchVersion, currentAbortController.signal);
     return;
   }
 
-  // Avbryt tidigare sökning
-  if (currentAbortController) currentAbortController.abort();
-  currentAbortController = new AbortController();
-  const signal = currentAbortController.signal;
-
-  currentSearchVersion++;
-  const thisVersion = currentSearchVersion;
-
   const filteredData = foodData
-    .filter(item => item.namn.toLowerCase().includes(searchTerm))
-    .sort((a, b) => compareBySearch(a, b, searchTerm));
+    .filter(item => item.namn.toLowerCase().includes(lastSearchTerm))
+    .sort((a, b) => compareBySearch(a, b, lastSearchTerm));
 
-  renderFoodList(filteredData, thisVersion, signal);
- // Efter att listan rendererats: hoppa upp till resultaten om vi är långt ner
- scrollToResultsTop();
-  // Ta bort auto-scroll för att undvika “ryck” vid snabb skrivning
-  // (behåll om du verkligen vill ha beteendet)
-  // setTimeout(() => { ... }, 200);
+  renderInit(filteredData, currentSearchVersion, currentAbortController.signal);
+  scrollToResultsTop();
 }
 
 // Init: visa/dölj kryss
@@ -285,8 +368,8 @@ searchInput.addEventListener("keydown", function (event) {
   }
 });
 
-async function renderFoodList(data, version = null, signal = null) {
-  nutritionOutput.innerHTML = "";
+async function renderFoodCardsAppend(data, version = null, signal = null) {
+  const cardsRoot = document.getElementById('resultsCards') || nutritionOutput;
 
   // Skelettkort
   for (const food of data) {
@@ -302,10 +385,10 @@ async function renderFoodList(data, version = null, signal = null) {
     if (lastSearchTerm && food.namn.toLowerCase() === lastSearchTerm) {
       card.classList.add("highlight");
     }
-    nutritionOutput.appendChild(card);
+    cardsRoot.appendChild(card);
   }
 
-  // Hjälpare för klassificering
+  // Hjälpare för klassificering (samma som hos dig)
   const fetchClassificationWithSignal = async (id, s) => {
     const url = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${id}/klassificeringar?sprak=1`;
     const res = await fetch(url, s ? { signal: s } : undefined);
@@ -314,7 +397,7 @@ async function renderFoodList(data, version = null, signal = null) {
   };
 
   // Fyll korten
-  data.forEach(async (food) => {
+  await Promise.all(data.map(async (food) => {
     const nutritionUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${food.id}/naringsvarden?sprak=1`;
     try {
       const [nutritionData, groupName] = await Promise.all([
@@ -332,21 +415,18 @@ async function renderFoodList(data, version = null, signal = null) {
         return item ? item.varde : 0;
       };
       const getValue = (name) => {
-        const item = nutritionData.find(n =>
-          n.namn.toLowerCase().includes(name.toLowerCase())
-        );
+        const item = nutritionData.find(n => n.namn.toLowerCase().includes(name.toLowerCase()));
         return item ? item.varde : 0;
       };
 
-      const energiKcal = getEnergyKcal();
-      const kolhydrater = getValue("kolhydrater");
-      const fett = getValue("fett");
-      const protein = getValue("protein");
+      const energiKcal   = getEnergyKcal();
+      const kolhydrater  = getValue("kolhydrater");
+      const fett         = getValue("fett");
+      const protein      = getValue("protein");
 
       const card = document.getElementById(`food-${food.id}`);
       if (!card) return;
 
-      // Ingen knapp här – bara info
       card.innerHTML = `
         <h3>${food.namn} <small class="per100">(per 100 g)</small></h3>
         <p><strong>Grupp:</strong> ${groupName}</p>
@@ -361,29 +441,23 @@ async function renderFoodList(data, version = null, signal = null) {
         setTimeout(() => card.classList.remove("highlight"), 1800);
       }
 
-      // Hela kortet öppnar modalen
-      const openModal = () =>
-        showFoodModal(food, groupName, energiKcal, kolhydrater, fett, protein);
-
+      const openModal = () => showFoodModal(food, groupName, energiKcal, kolhydrater, fett, protein);
       card.addEventListener("click", openModal);
       card.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter" || ev.key === " ") {
-          ev.preventDefault();
-          openModal();
-        }
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openModal(); }
       });
 
     } catch (err) {
       if (err.name === "AbortError") return;
       if (version !== null && version !== currentSearchVersion) return;
       const card = document.getElementById(`food-${food.id}`);
-      if (!card) return;
-      const loading = card.querySelector(".loading");
-      if (loading) loading.textContent = "Kunde inte hämta näringsvärden.";
+      if (card) {
+        const loading = card.querySelector(".loading");
+        if (loading) loading.textContent = "Kunde inte hämta näringsvärden.";
+      }
     }
-  });
+  }));
 }
-
 
 function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = null) {
     const qty = quantity !== null ? quantity : (parseInt(document.getElementById("quantity" + id).value, 10) || 100);
@@ -440,8 +514,6 @@ function updateSelectedFoodsList() {
         </li>`;
 
     }
-
-    foodList.innerHTML += "</ul>";
     updateSummary();
 }
 
@@ -656,7 +728,6 @@ document.getElementById("clearListButton").addEventListener("click", function ()
     updateSummary();
 });
 
-renderFoodList(foodData);
  // Synka mount och höjder vid init
  syncDrawerMount();
  adjustSelectedListHeight();
