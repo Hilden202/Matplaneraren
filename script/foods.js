@@ -120,17 +120,24 @@ const sidebarHeader = document.querySelector(".sidebar-header");
 
 function makeFinder(nutritionData){
   const rows = (nutritionData || []).map(n => ({
-    name: (n.namn || "").toLowerCase().trim(),
+    key: (n.namn || "").toLowerCase().trim().replace(/\s+/g,' '),
     rawName: n.namn || "",
     value: Number(n.varde),
     unit: n.enhet || ""
   }));
+  const norm = s => s.toLowerCase().trim().replace(/\s+/g,' ');
   return (aliases) => {
-    const al = aliases.map(a => a.toLowerCase());
-    const hit = rows.find(r => al.some(a => r.name.includes(a)));
+    const al = aliases.map(norm);
+    // 1) exakt match
+    let hit = rows.find(r => al.includes(r.key));
+    // 2) prefix
+    if (!hit) hit = rows.find(r => al.some(a => r.key.startsWith(a)));
+    // 3) inkluderar, men uteslut fettsyror
+    if (!hit) hit = rows.find(r => al.some(a => r.key.includes(a)) && !/fettsyra|fettsyror/.test(r.key));
     return hit ? { value: hit.value, unit: hit.unit, label: hit.rawName } : null;
   };
 }
+
 
 function passesDietFilter(carbsPer100) {
   return carbsPer100 <= dietFilter.carbMax;
@@ -548,10 +555,10 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
         added_sugar_g:    find(['tillsatt socker']),
         // Livsmedelsverket använder ofta "Fibrer" eller "Kostfiber"
         fiber_g:          find(['fibrer','kostfiber','fiber']),
-        fat_g:            find(['fett, totalt','fett ','fett']),
-        fat_saturated_g:  find(['summa mättade']),
-        fat_mono_g:       find(['summa enkelomättade']),
-        fat_poly_g:       find(['summa fleromättade']),
+        fat_g:            find(['fett, totalt','fett totalt','fett (g)']),
+        fat_saturated_g:  find(['summa mättade fettsyror','summa mättade']),
+        fat_mono_g:       find(['summa enkelomättade fettsyror','summa enkelomättade']),
+        fat_poly_g:       find(['summa fleromättade fettsyror','summa fleromättade']),
         protein_g:        find(['protein']),
         salt_g:           find(['salt, nacl']),
         sodium_mg:        find(['natrium, na']),
@@ -560,13 +567,24 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
         alcohol_g:        find(['alkohol']),
       };
 
-      // Kärnvärden (med fallback)
-      const energiKcal   = norm.energy_kcal?.value ?? getEnergyKcal();
-      const kolhydrater  = norm.carbs_g?.value   ?? 0;
-      const fett         = norm.fat_g?.value     ?? 0;
-      const protein      = norm.protein_g?.value ?? 0;
-      const fiber        = norm.fiber_g?.value   ?? null;
-      const sugar        = norm.sugars_g?.value  ?? null;
+      // Kärnvärden (med fallback för fett)
+      const energiKcal  = norm.energy_kcal?.value ?? getEnergyKcal();
+      const kolhydrater = norm.carbs_g?.value ?? 0;
+
+      let fett = norm.fat_g?.value;                     // 👈 byt från const → let
+      if (!Number.isFinite(fett)) {
+        const parts = [
+          norm.fat_saturated_g?.value,
+          norm.fat_mono_g?.value,
+          norm.fat_poly_g?.value
+        ].filter(Number.isFinite);
+        if (parts.length) fett = +(parts.reduce((a,b)=>a+b,0).toFixed(1));
+      }
+      fett = Number.isFinite(fett) ? fett : 0;
+
+      const protein = norm.protein_g?.value ?? 0;
+      const fiber   = norm.fiber_g?.value ?? null;
+      const sugar   = norm.sugars_g?.value ?? null;
 
       // Filtrera enligt valt filter
       const predicate = buildFilterPredicate(dietFilter.type || 'all');
@@ -583,11 +601,38 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
         return;
       }
 
-      // Chips med “rätt” etikett (den faktiska texten från API:t)
+      // ——— härledda/extra värden ———
+      const salt_g = norm.salt_g?.value ?? (norm.sodium_mg ? (norm.sodium_mg.value / 1000) * 2.5 : null); // Na mg → salt g
+      const satFat_g = norm.fat_saturated_g?.value ?? null;
+      const netCarbs_g = (Number.isFinite(kolhydrater) && Number.isFinite(fiber))
+        ? Math.max(0, +(kolhydrater - fiber).toFixed(1))
+        : null;
+
+      const addedSugar_g = norm.added_sugar_g?.value ?? null;
+      const freeSugar_g  = norm.free_sugar_g?.value  ?? null;
+      // välj “tillsatt socker” först, annars fritt/total
+      const sugarLabel = norm.added_sugar_g?.label ?? norm.free_sugar_g?.label ?? norm.sugars_g?.label;
+      const sugarValue = addedSugar_g ?? freeSugar_g ?? norm.sugars_g?.value ?? null;
+
+      const proteinPer100kcal = energiKcal > 0 ? +( (protein / (energiKcal / 100)).toFixed(1) ) : null;
+      const cholesterol_mg = norm.cholesterol_mg?.value ?? null;
+
+      // liten formatter
+      const f1 = n => Number.isFinite(n) ? (Math.round(n * 10) / 10) : null;
+
+      // ——— bygg chips ———
       const chips = [];
-      if (norm.fiber_g)  chips.push(`<span class="chip">${norm.fiber_g.label}: ${norm.fiber_g.value} ${norm.fiber_g.unit || 'g'}</span>`);
-      if (norm.sugars_g) chips.push(`<span class="chip">${norm.sugars_g.label}: ${norm.sugars_g.value} ${norm.sugars_g.unit || 'g'}</span>`);
-      const extrasHtml = chips.length ? `<div class="extras">${chips.join('')}</div>` : '';
+      if (Number.isFinite(fiber))         chips.push(`<span class="chip">${norm.fiber_g?.label ?? 'Fibrer'}: ${f1(fiber)} g</span>`);
+      if (Number.isFinite(sugarValue))    chips.push(`<span class="chip">${sugarLabel ?? 'Socker'}: ${f1(sugarValue)} g</span>`);
+      if (Number.isFinite(salt_g))        chips.push(`<span class="chip">Salt: ${f1(salt_g)} g</span>`);
+      if (Number.isFinite(satFat_g))      chips.push(`<span class="chip">Mättat fett: ${f1(satFat_g)} g</span>`);
+      if (Number.isFinite(netCarbs_g))    chips.push(`<span class="chip">Netto-kolhydrater: ${f1(netCarbs_g)} g</span>`);
+      if (Number.isFinite(proteinPer100kcal)) chips.push(`<span class="chip">Protein/100 kcal: ${f1(proteinPer100kcal)} g</span>`);
+      if (Number.isFinite(cholesterol_mg))    chips.push(`<span class="chip">Kolesterol: ${Math.round(cholesterol_mg)} mg</span>`);
+
+      // (valfritt) begränsa hur många som syns för att undvika “chip-sallad”
+      const extrasHtml = chips.length ? `<div class="extras">${chips.slice(0, 4).join('')}</div>` : '';
+
 
 
       const card = document.getElementById(`food-${food.id}`);
