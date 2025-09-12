@@ -30,7 +30,7 @@ html {
 /* Mobil: lägg modalen ännu lite längre ned + ta höjd för safe area */
 @media (max-width: 520px){
   :root{
-    --modal-top: 22vh;
+    --modal-top: 20vh;
     --modal-bottom: max(7vh, env(safe-area-inset-bottom));
   }
 }
