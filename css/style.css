@@ -895,3 +895,11 @@ button:not(.clear-btn):hover{
   text-decoration: underline;
   color: #004f4f;             /* mörkare teal vid hover */
 }
+
+.modal-source {
+  margin-top: 6px;
+  font-size: 12px;       /* mindre text */
+  color: #666;           /* nedtonad grå */
+  line-height: 1.4;
+  text-align: right;     /* valfritt: högerställ för diskret placering */
+}
