@@ -1,13 +1,11 @@
 //const url = "https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel?offset=0&limit=2569&sprak=1";
 const foodList = document.getElementById("foodList");
-const foodListContainer = document.getElementById("foodListContainer");
 const nutritionOutput = document.getElementById("nutritionOutput");
 const searchInput = document.getElementById("foodInput");
 const DEFAULT_SLIDER_MAX = 1000;
  // Drawer-element
  const mobileDrawer = document.getElementById("mobileDrawer");
  const drawerHandle = document.getElementById("drawerHandle");
- const drawerChev   = document.getElementById("drawerChev");
  const drawerContent = document.getElementById("drawerContent");
 // Backdrop för klick-utanför-stäng
 const drawerBackdrop = mobileDrawer?.querySelector(".drawer-backdrop");
@@ -19,18 +17,13 @@ const getPageChunk = () => (isMobile() ? 25 : 50);
 
 // --- Källa: Livsmedelsverket ---
 const LMV_SOURCE_URL = "https://soknaringsinnehall.livsmedelsverket.se/";
-let   LMV_VERSION    = "2025-06-09"; // uppdatera vid behov
+const LMV_VERSION = "2025-06-09"; // hårdkodat för nuvarande version
 
-// (valfritt) Om du vill klistra in hela texten från deras sida och få ut datumet automatiskt:
-function deriveLmvVersion(rawText) {
+function deriveLmvVersion(rawText) { //Denna fungerar inte just nu
   // matchar "version YYYY-MM-DD" (skiftlägesokänsligt, tolererar extra mellanrum)
   const m = /version\s+(\d{4}-\d{2}-\d{2})/i.exec(rawText || "");
   return m ? m[1] : null;
 }
-// Exempel (om du vill använda regexen):
-// const pasted = `Använd gärna uppgifter ... Livsmedelsdatabas version 2025-06-09. När ...`;
-// const v = deriveLmvVersion(pasted); if (v) LMV_VERSION = v;
-
 
 let currentList = [];
 let renderedCount = 0;
@@ -38,8 +31,6 @@ let isAppending = false;
 let io = null;
 let sentinel = null;
 let dietFilter = { type: 'all' };
-
-let booted = false;
 
 const nutritionCache = new Map(); // cache för /naringsvarden per livsmedels-id
 const classCache = new Map();     // cache för /klassificeringar per livsmedels-id
@@ -60,19 +51,6 @@ function setDrawerOpen(open) {
 
   // refresh the little "(n)" visibility on every toggle
   updateDrawerCount();
-}
-
-function setDrawerCount(n) {
-  const el = document.getElementById('drawerCountText');
-  const drawer = document.getElementById('mobileDrawer');
-  if (!el || !drawer) return;
-
-  if (n > 0 && !drawer.classList.contains('open')) {
-    el.textContent = `antal poster: ${n}`;
-    el.hidden = false;
-  } else {
-    el.hidden = true;
-  }
 }
 
 function updateDrawerCount() {
@@ -197,21 +175,11 @@ if (clearBtn) {
   });
 }
 
-// Hjälpare: hämta första träffen vars namn innehåller något av nycklarna
-function pickValue(nutritionData, keys) {
-  const hit = nutritionData.find(n => {
-    const nm = (n.namn || "").toLowerCase();
-    return keys.some(k => nm.includes(k));
-  });
-  return hit ? Number(hit.varde) : null;
-}
-
 // (valfritt) Stäng även på ESC
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") setDrawerOpen(false);
 });
 // Referenser för desktop-kolumnen
-const rightInner = document.querySelector(".right-inner");
 const selectedFoodsListEl = document.getElementById("selectedFoodsList");
 const summaryEl = document.getElementById("summary");
 const sidebarHeader = document.querySelector(".sidebar-header");
@@ -234,11 +202,6 @@ function makeFinder(nutritionData){
     if (!hit) hit = rows.find(r => al.some(a => r.key.includes(a)) && !/fettsyra|fettsyror/.test(r.key));
     return hit ? { value: hit.value, unit: hit.unit, label: hit.rawName } : null;
   };
-}
-
-
-function passesDietFilter(carbsPer100) {
-  return carbsPer100 <= dietFilter.carbMax;
 }
 
 function onModalBackdropClick(e) {
@@ -380,23 +343,6 @@ function mountBackToRightColumn() {
   if (!rightInner.contains(summaryEl))            rightInner.append(summaryEl);
 }
 
-
-function setDrawerCount(n) {
-  const el = document.getElementById('drawerCountText');
-  const drawer = document.getElementById('mobileDrawer');
-  if (!el || !drawer) return;
-
-  const isOpen = drawer.classList.contains('open');
-
-  if (n > 0 && !isOpen) {
-    el.textContent = `(antal poster: ${n})`;
-    el.hidden = false;
-  } else {
-    el.hidden = true;
-  }
-}
-
-
  // Toggle på klick (bara på mobil)
  drawerHandle?.addEventListener("click", () => {
    if (!isMobile()) return;
@@ -429,7 +375,6 @@ window.addEventListener("resize", () => {
 document.addEventListener("DOMContentLoaded", () => {
   syncDrawerMount();       // flytta in denna
   showEmptyState();        // din välkomstvy
-  booted = true;
   updateDrawerCount();     // initiera "(n)" direkt
 });
 
@@ -460,42 +405,6 @@ function compareBySearch(a, b, term) {
 
   if (an.length !== bn.length) return an.length - bn.length; // kortare namn först
   return an.localeCompare(bn, 'sv'); // stabil alfabetisk ordning (svenska)
-}
-
-const summary = {
-    totalEnergy: 0,
-    totalCarbs: 0,
-    totalFat: 0,
-    totalProtein: 0
-};
-
-function getValue(food, namn) {
-    if (!food.naringsvarden) return 0;
-
-    const item = food.naringsvarden.find(n => n.namn.toLowerCase().includes(namn.toLowerCase()));
-    return item ? item.varde : 0;
-}
-
-async function fetchClassification(foodId) {
-    const classificationUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${foodId}/klassificeringar?sprak=1`;
-
-    try {
-        const response = await fetch(classificationUrl);
-        const data = await response.json();
-
-        // Kontrollera om klassificeringar finns
-        if (data && data.length > 0) {
-
-            const groupName = data[0].namn;
-            return groupName;
-        } else {
-            return "Ingen klassificering tillgänglig";
-        }
-    } catch (error) {
-        console.error("Fel vid hämtning av klassificeringar:", error);
-        return "Fel vid hämtning";
-    }
-
 }
 
 async function fetchAllFoods() {
@@ -669,10 +578,6 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
           n.namn.toLowerCase().includes("energi") &&
           n.enhet && n.enhet.toLowerCase().includes("kcal")
         );
-        return item ? item.varde : 0;
-      };
-      const getValue = (name) => {
-        const item = nutritionData.find(n => n.namn.toLowerCase().includes(name.toLowerCase()));
         return item ? item.varde : 0;
       };
 
@@ -851,7 +756,7 @@ function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = nu
       netCarbs: extras.netCarbs ?? null
     });
   }
-  setDrawerCount(selectedFoods.length);
+  updateDrawerCount();
   updateSelectedFoodsList();
   adjustSelectedListHeight();
   updateSummary();
@@ -889,27 +794,9 @@ function updateSelectedFoodsList() {
         </li>`;
 
     }
-    setDrawerCount(selectedFoods.length);
+    updateDrawerCount();
     updateSummary();
 }
-
-function updateQuantity(index, newValue, labelElement) {
-  const quantity = parseInt(newValue, 10);
-  selectedFoods[index].quantity = quantity;
-
-  // Uppdatera direkt etiketten som visas
-  const name = selectedFoods[index].name;
-  const maxLength = 35;
-  const trimmedName = name.length > maxLength
-      ? name.substring(0, maxLength - 3) + "..."
-      : name;
-
-  labelElement.textContent = `${quantity} g ${trimmedName}`;
-
-  // Uppdatera summeringen direkt
-  updateSummary();
-}
-
 
 function removeFood(index) {
     selectedFoods.splice(index, 1);
@@ -1178,10 +1065,6 @@ document.getElementById("clearListButton").addEventListener("click", function ()
     adjustSelectedListHeight();
     updateSummary();
 });
-
- // Synka mount och höjder vid init
- syncDrawerMount();
- adjustSelectedListHeight();
 
 function adjustSelectedListHeight() {
   const list = document.getElementById("selectedFoodsList");
