@@ -868,3 +868,11 @@ button:not(.clear-btn):hover{
 .modal-extras li.extra strong {
   font-weight: 600;
 }
+
+.source-note{
+  font-size: 13px;
+  color: #555;
+  line-height: 1.45;
+}
+.source-note a{ color: #006d6d; text-decoration: none; }
+.source-note a:hover{ text-decoration: underline; }

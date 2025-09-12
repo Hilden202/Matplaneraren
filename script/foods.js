@@ -17,6 +17,21 @@ drawerBackdrop?.addEventListener("click", () => {
 
 const getPageChunk = () => (isMobile() ? 25 : 50);
 
+// --- Källa: Livsmedelsverket ---
+const LMV_SOURCE_URL = "https://soknaringsinnehall.livsmedelsverket.se/";
+let   LMV_VERSION    = "2025-06-09"; // uppdatera vid behov
+
+// (valfritt) Om du vill klistra in hela texten från deras sida och få ut datumet automatiskt:
+function deriveLmvVersion(rawText) {
+  // matchar "version YYYY-MM-DD" (skiftlägesokänsligt, tolererar extra mellanrum)
+  const m = /version\s+(\d{4}-\d{2}-\d{2})/i.exec(rawText || "");
+  return m ? m[1] : null;
+}
+// Exempel (om du vill använda regexen):
+// const pasted = `Använd gärna uppgifter ... Livsmedelsdatabas version 2025-06-09. När ...`;
+// const v = deriveLmvVersion(pasted); if (v) LMV_VERSION = v;
+
+
 let currentList = [];
 let renderedCount = 0;
 let isAppending = false;
@@ -42,6 +57,14 @@ function showEmptyState() {
     <div id="emptyState" class="empty-state">
       <h2>Välkommen till Kostplaneraren</h2>
       <p>Skriv i sökfältet ovan för att börja. Exempel: <em>ägg</em>, <em>kyckling</em>, <em>broccoli</em>.</p>
+
+      <hr style="border:none; border-top:1px solid #eef1f1; margin:14px 0 10px;">
+
+      <p class="source-note">
+        <strong>Källa:</strong>
+        <a href="${LMV_SOURCE_URL}" target="_blank" rel="noopener">Livsmedelsverkets Livsmedelsdatabas</a>
+        version <span id="lmvVer">${LMV_VERSION}</span>.<br>
+      </p>
     </div>
     <div id="resultsCards" hidden></div>
     <div class="loadmore-bar">
