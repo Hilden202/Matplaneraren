@@ -78,18 +78,30 @@
        <a class="site-credits" href="https://hildenmedia.se/" target="_blank" rel="noopener">© HildenMedia</a>
        <div class="diet-filter">
        <label for="dietSelect" style="margin-right:6px;">Filter:</label>
-       <select id="dietSelect">
-         <option value="all">Alla livsmedel</option>
-         <option value="keto3">Keto (≤3 g/100g)</option>
-         <option value="lchf5">LCHF strikt (≤5 g/100g)</option>
-         <option value="lchf10">LCHF liberal (≤10 g/100g)</option>
-         <option value="hp20">High protein (≥20 g/100g)</option>
-          <option value="lean">Lean protein (≥20 g prot & ≤5 g fett)</option>
-          <option value="lc50">Low calorie (≤50 kcal/100g)</option>
-          <option value="hf15">High fat (≥15 g/100g)</option>
-          <option value="fiber5">High fiber (≥5 g/100g)</option>
-          <option value="sugar5">Low sugar (≤5 g/100g)</option>
-       </select>
+          <select id="dietSelect">
+          <option value="alla">Alla livsmedel</option>
+
+          <optgroup label="Lågkolhydrat / LCHF / Keto">
+            <option value="keto_x">Keto (extra strikt) – ≤ 3 g nettokolhydrater</option>
+            <option value="lchf_strikt">LCHF strikt – ≤ 5 g nettokolhydrater</option>
+            <option value="lchf_liberal">LCHF liberal – ≤ 10 g nettokolhydrater</option>
+          </optgroup>
+
+          <optgroup label="Protein- och fettprofiler">
+            <option value="hogprotein">Högprotein – ≥ 20 g/100 g (eller ≥30% av energi)</option>
+            <option value="lag_fett">Låg fett – ≤ 3 g/100 g</option>
+            <option value="lag_mattat">Låg mättat fett – ≤ 1.5 g/100 g</option>
+            <option value="medelhav">Medelhavsvänlig fettprofil (omättat ≥ 2× mättat)</option>
+          </optgroup>
+
+          <optgroup label="Socker, salt, fibrer, energi">
+            <option value="lag_socker">Lågt socker – ≤ 5 g/100 g</option>
+            <option value="lag_salt">Lågt salt – ≤ 0.3 g/100 g</option>
+            <option value="fiberrik">Fiberrik – ≥ 6 g/100 g</option>
+            <option value="lag_energi">Låg energitäthet – ≤ 80 kcal/100 g</option>
+          </optgroup>
+          </select>
+
      </div>
        <div class="search-row">
          <input type="text" id="foodInput" placeholder="Sök efter livsmedel...">

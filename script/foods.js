@@ -26,6 +26,9 @@ let dietFilter = { type: 'all' };
 
 let booted = false;
 
+const nutritionCache = new Map(); // cache för /naringsvarden per livsmedels-id
+const classCache = new Map();     // cache för /klassificeringar per livsmedels-id
+
 function getScrollRoot() {
   const left = document.querySelector('.main-left');
   if (left && (left.scrollHeight - left.clientHeight) > 2) {
@@ -62,7 +65,22 @@ function showNoHits(term) {
 const dietSelect = document.getElementById('dietSelect');
 dietSelect?.addEventListener('change', () => {
   const v = dietSelect.value;
-  dietFilter = { type: v };
+  // Mappning från menyvärden → interna filtertyper
+  const map = {
+    'alla':        'all',
+    'keto_x':      'keto3',        // ≤ 3 g nettokolhydrater (fallback till total om netto saknas)
+    'lchf_strikt': 'lchf5',        // ≤ 5 g netto
+    'lchf_liberal':'lchf10',       // ≤ 10 g netto
+    'hogprotein':  'hp20',         // ≥ 20 g protein/100 g
+    'lag_fett':    'lowfat3',      // ≤ 3 g fett/100 g
+    'lag_mattat':  'lowsat1_5',    // ≤ 1.5 g mättat fett/100 g
+    'medelhav':    'medelhav',     // omättat ≥ 2× mättat (approx: (totalt−mättat) ≥ 2×mättat)
+    'lag_socker':  'sugar5',       // ≤ 5 g socker/100 g
+    'lag_salt':    'lowsalt0_3',   // ≤ 0.3 g salt/100 g
+    'fiberrik':    'fiber6',       // ≥ 6 g fiber/100 g
+    'lag_energi':  'lowkcal80'     // ≤ 80 kcal/100 g
+  };
+  dietFilter = { type: map[v] ?? 'all' };
 
   // Kör om aktuell sökning så listan uppdateras med filtret
   doSearch(searchInput.value);
@@ -191,6 +209,9 @@ async function renderNextChunk(version, signal) {
   if (renderedCount >= currentList.length) return;
 
   isAppending = true;
+  // dölj knappen medan vi arbetar, så den inte “studsar”
+  const btn = document.getElementById('loadMoreBtn');
+  if (btn) btn.style.display = 'none';
 
   const start = renderedCount;
   const pageSize = getPageChunk();
@@ -198,15 +219,30 @@ async function renderNextChunk(version, signal) {
   const chunk = currentList.slice(start, end);
 
   // 🔑 Append bara nya kort – rör inte redan renderat
-  await renderFoodCardsAppend(chunk, version, signal);
+  const shownInChunk = await renderFoodCardsAppend(chunk, version, signal);
   renderedCount = end;
   isAppending = false;
   // Dölj tom-state när vi ska visa resultat
   document.getElementById('emptyState')?.remove();
 
 
-  // Visa/hide knappen beroende på om allt är renderat
-  const btn = document.getElementById('loadMoreBtn');
+  // Om vi fick för få i denna chunk: hämta nästa chunk automatiskt
+  if (shownInChunk < 6 && renderedCount < currentList.length) {
+    // fortsätt mata tills vi uppnått 6 kort eller tar slut
+    return renderNextChunk(version, signal);
+  }
+
+  // Om inget kort alls synts och allt är slut → ingen träff
+  const anyVisible = document.querySelector('.food-card');
+  if (!anyVisible && renderedCount >= currentList.length) {
+    nutritionOutput.innerHTML = `
+      <div class="empty-state">
+        <h2>Inga träffar för valt filter</h2>
+        <p>Justera filtret eller sökordet och försök igen.</p>
+      </div>
+    `;
+  }
+  // Annars: visa knappen om det finns mer att hämta
   if (btn) btn.style.display = (renderedCount < currentList.length) ? 'inline-block' : 'none';
 
   // Flytta sentinel sist så IO triggar när vi når botten igen
@@ -474,15 +510,27 @@ searchInput.addEventListener("keydown", function (event) {
 
 function buildFilterPredicate(filterType) {
   switch (filterType) {
-    case 'keto3':   return n => n.carbs <= 3;
-    case 'lchf5':   return n => n.carbs <= 5;
-    case 'lchf10':  return n => n.carbs <= 10;
+    case 'keto3':   return n => (n.netCarbs ?? n.carbs) <= 3;
+    case 'lchf5':   return n => (n.netCarbs ?? n.carbs) <= 5;
+    case 'lchf10':  return n => (n.netCarbs ?? n.carbs) <= 10;
     case 'hp20':    return n => n.protein >= 20;
-    case 'lean':    return n => n.protein >= 20 && n.fat <= 5;
-    case 'lc50':    return n => n.kcal <= 50;
-    case 'hf15':    return n => n.fat >= 15;
-    case 'fiber5':  return n => (n.fiber ?? 0) >= 5;
-    case 'sugar5':  return n => (n.sugar ?? 0) <= 5;
+    case 'lowfat3':   return n => n.fat <= 3;
+    case 'lowsat1_5': return n => (n.satFat ?? Infinity) <= 1.5;
+    case 'medelhav':  return n => {
+      // Approx: omättat ≈ totalt fett − mättat fett
+      if (!Number.isFinite(n.fat) || !Number.isFinite(n.satFat)) return false;
+      const unsat = Math.max(0, n.fat - n.satFat);
+      return unsat >= 2 * n.satFat;
+    };
+    case 'sugar5':    return n => (n.sugar ?? 0) <= 5;
+    case 'lowsalt0_3':return n => (n.salt  ?? Infinity) <= 0.3;
+    case 'fiber6':    return n => (n.fiber ?? 0) >= 6;
+    case 'lowkcal80': return n => n.kcal <= 80;
+    // kvar från tidigare om du använder dem någon annanstans
+    case 'lean':      return n => n.protein >= 20 && n.fat <= 5;
+    case 'lc50':      return n => n.kcal <= 50;
+    case 'hf15':      return n => n.fat >= 15;
+    case 'fiber5':    return n => (n.fiber ?? 0) >= 5;
     case 'all':
     default:        return _ => true;
   }
@@ -493,6 +541,7 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
   const cardsWrap = document.getElementById('resultsCards');
   if (cardsWrap && cardsWrap.hasAttribute('hidden')) cardsWrap.removeAttribute('hidden');
 
+  let shownInChunk = 0;
   // Skelettkort
   for (const food of data) {
     const card = document.createElement("div");
@@ -523,10 +572,9 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
   await Promise.all(data.map(async (food) => {
     const nutritionUrl = `https://dataportal.livsmedelsverket.se/livsmedel/api/v1/livsmedel/${food.id}/naringsvarden?sprak=1`;
     try {
-      const [nutritionData, groupName] = await Promise.all([
-        fetch(nutritionUrl, signal ? { signal } : undefined).then(r => r.json()),
-        fetchClassificationWithSignal(food.id, signal)
-      ]);
+        const nutritionData = nutritionCache.get(food.id)
+        ?? await fetch(nutritionUrl, signal ? { signal } : undefined).then(r => r.json());
+        nutritionCache.set(food.id, nutritionData);
 
       if (version !== null && version !== currentSearchVersion) return;
 
@@ -586,6 +634,13 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
       const fiber   = norm.fiber_g?.value ?? null;
       const sugar   = norm.sugars_g?.value ?? null;
 
+      // ——— härledda värden som filter behöver ———
+      const salt_g = norm.salt_g?.value ?? (norm.sodium_mg ? (norm.sodium_mg.value / 1000) * 2.5 : null); // Na mg → salt g
+      const satFat_g = norm.fat_saturated_g?.value ?? null;
+      const netCarbs_g = (Number.isFinite(kolhydrater) && Number.isFinite(fiber))
+        ? Math.max(0, +(kolhydrater - fiber).toFixed(1))
+        : null;
+
       // Filtrera enligt valt filter
       const predicate = buildFilterPredicate(dietFilter.type || 'all');
       const pass = predicate({
@@ -594,19 +649,21 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
         fat: fett,
         protein: protein,
         fiber: fiber,
-        sugar: sugar
+        sugar: sugar,
+        salt:  salt_g,
+        satFat: satFat_g,
+        netCarbs: netCarbs_g
       });
       if (!pass) {
         document.getElementById(`food-${food.id}`)?.remove();
         return;
       }
+      shownInChunk++;
 
-      // ——— härledda/extra värden ———
-      const salt_g = norm.salt_g?.value ?? (norm.sodium_mg ? (norm.sodium_mg.value / 1000) * 2.5 : null); // Na mg → salt g
-      const satFat_g = norm.fat_saturated_g?.value ?? null;
-      const netCarbs_g = (Number.isFinite(kolhydrater) && Number.isFinite(fiber))
-        ? Math.max(0, +(kolhydrater - fiber).toFixed(1))
-        : null;
+      const groupName = classCache.get(food.id)
+      ?? await fetchClassificationWithSignal(food.id, signal);
+      classCache.set(food.id, groupName);
+
 
       const addedSugar_g = norm.added_sugar_g?.value ?? null;
       const freeSugar_g  = norm.free_sugar_g?.value  ?? null;
@@ -685,6 +742,7 @@ async function renderFoodCardsAppend(data, version = null, signal = null) {
       }
     }
   }));
+  return shownInChunk;
 }
 
 function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = null, extras = {}) {
