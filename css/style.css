@@ -915,3 +915,10 @@ button:not(.clear-btn):hover{
   font-weight: 500;
   color: rgba(255,255,255,0.85); /* diskret vit/grå */
 }
+
+.site-disclaimer {
+  font-size: 0.85em;
+  color: #666;
+  margin-top: 4px;
+  font-style: italic;
+}

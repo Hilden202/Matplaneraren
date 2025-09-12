@@ -115,6 +115,9 @@ function showEmptyState() {
         <a href="${LMV_SOURCE_URL}" target="_blank" rel="noopener">Livsmedelsverkets Livsmedelsdatabas</a>
         version <span id="lmvVer">${LMV_VERSION}</span>.<br>
       </p>
+      <p class="site-disclaimer">
+        Denna webbplats är ett privat projekt och inte en officiell tjänst från Livsmedelsverket.
+      </p>
     </div>
     <div id="resultsCards" hidden></div>
     <div class="loadmore-bar">
