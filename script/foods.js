@@ -35,6 +35,9 @@ let dietFilter = { type: 'all' };
 const nutritionCache = new Map(); // cache för /naringsvarden per livsmedels-id
 const classCache = new Map();     // cache för /klassificeringar per livsmedels-id
 
+// Låsflagga för header (true medan sökfältet är i fokus)
+let headerLock = false;
+
 function setDrawerOpen(open) {
   if (!isMobile()) return;
   mobileDrawer.classList.toggle("open", open);
@@ -559,7 +562,9 @@ function doSearch(rawTerm) {
   if (!lastSearchTerm) {
     // Tillbaka till hela listan (paginerat)
     renderInit(foodData, currentSearchVersion, currentAbortController.signal);
-    scrollToResultsTop();   // ⬅️ skrolla upp även vid tom sökning
+  if (!headerLock) {      // ⬅️ undvik hopp när tangentbordet är öppet
+      scrollToResultsTop();
+  }
     return;
   }
 
@@ -573,7 +578,9 @@ function doSearch(rawTerm) {
   }
 
   renderInit(filteredData, currentSearchVersion, currentAbortController.signal);
-  scrollToResultsTop();
+  if (!headerLock) {
+      scrollToResultsTop();
+  }
 }
 
 // Init: visa/dölj kryss
@@ -594,8 +601,6 @@ searchInput.addEventListener("keydown", function (event) {
   }
 });
 
-// Lås headern medan sökfältet har fokus – orienteringsmedvetet
-let headerLock = false;
 searchInput?.addEventListener("focus", () => {
   headerLock = true;
   if (isMobileAny() && !isMobileLandscape()) {
