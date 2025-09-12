@@ -974,3 +974,14 @@ button:not(.clear-btn):hover{
     transform: translateY(calc(-1 * var(--header-h)));
   }
 }
+
+/* När headern är gömd på mobil: låt båda spalter börja högst upp */
+@media (max-width: 768px) {
+  html.hdr-hidden .main-right {
+    top: 8px;
+    height: calc(100vh - 8px);
+  }
+  html.hdr-hidden .main-left {
+    margin-top: 8px; /* ta bort ev. extra glapp på vänstersidan */
+  }
+}

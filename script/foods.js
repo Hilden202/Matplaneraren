@@ -205,8 +205,15 @@ function applyHeaderVisibility(){
   const nearTop = y <= 8;
   const scrollingDown = y > lastScrollY;
   // Dölj vid nedåt-skroll, visa nära toppen eller vid uppåt-skroll
-  if (!nearTop && scrollingDown) header.classList.add("header-hidden");
-  else                           header.classList.remove("header-hidden");
+  if (!nearTop && scrollingDown) {
+    header.classList.add("header-hidden");
+    document.documentElement.classList.add("hdr-hidden");   // ⬅ root-flagga
+  } else {
+    header.classList.remove("header-hidden");
+    document.documentElement.classList.remove("hdr-hidden"); // ⬅ stäng av
+  }
+  // räkna om högerkolumnens höjder när läget ändras
+  requestAnimationFrame(adjustSelectedListHeight);
   lastScrollY = y;
 }
 function bindAutoHideHeader(){
