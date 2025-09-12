@@ -52,6 +52,11 @@ function getScrollRoot() {
   return null;                  // fall tillbaka till window
 }
 
+function lvFoodUrl(id) {
+  // ev. sökord/kategori-parametrar behövs inte – sidan funkar fint utan
+  return `https://soknaringsinnehall.livsmedelsverket.se/Home/FoodDetails/${id}`;
+}
+
 function showEmptyState() {
   nutritionOutput.innerHTML = `
     <div id="emptyState" class="empty-state">
@@ -978,12 +983,15 @@ function showFoodModal(food, group, d) {
   if (Number.isFinite(d.netCarbs_g))  extraRows.push(`<li class="extra">Netto-kolhydrater: <strong><span id="calcNetCarbs">0</span> g</strong></li>`);
 
   const extrasHtml = extraRows.length
-    ? `
-      <details class="nutr-extras">
-        <summary>Fler näringsvärden</summary>
-        <ul class="modal-extras">${extraRows.join('')}</ul>
-      </details>`
-    : '';
+  ? `
+  <details class="nutr-extras">
+  <summary>Fler näringsvärden</summary>
+  <ul class="modal-extras">${extraRows.join('')}</ul>
+  </details>`
+  : '';
+  
+  const lvUrl = lvFoodUrl(food.id);
+  const sourceDate = window.lvReleaseDateText || ""; // om du redan läser ut datumet globalt
 
   body.innerHTML = `
     <h2>${food.namn}</h2>
@@ -1010,7 +1018,22 @@ function showFoodModal(food, group, d) {
     </div>
 
     <div class="modal-actions">
-      <button id="modalAddBtn">Lägg till</button>
+      <div class="modal-actions">
+  <button id="modalAddBtn">Lägg till</button>
+  <a class="btn-secondary external"
+     href="${lvUrl}"
+     target="_blank"
+     rel="noopener noreferrer"
+     aria-label="Öppna fullständiga näringsvärden för ${food.namn} hos Livsmedelsverket (ny flik)">
+     Visa hos Livsmedelsverket
+  </a>
+</div>
+
+<p class="modal-source">
+  Källa: Livsmedelsverkets Livsmedelsdatabas
+  ${sourceDate ? `version ${sourceDate}` : ``}.
+</p>
+
     </div>
   `;
 
