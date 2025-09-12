@@ -201,6 +201,11 @@ function applyHeaderVisibility(){
     header?.classList.remove("header-hidden");
     return;
   }
+  if (headerLock) {
+    header.classList.remove("header-hidden");
+    document.documentElement.classList.remove("hdr-hidden");
+    return;
+  }
   const y = getScrollY();
   const nearTop = y <= 8;
   const scrollingDown = y > lastScrollY;
@@ -593,6 +598,18 @@ searchInput?.addEventListener("focus", () => {
 
 // När fokus lämnar: återställ synlighet baserat på aktuell scroll
 searchInput?.addEventListener("blur", () => {
+  requestAnimationFrame(applyHeaderVisibility);
+});
+
+// Lås headern synlig medan sökfältet är i fokus
+let headerLock = false;
+searchInput?.addEventListener("focus", () => {
+  headerLock = true;
+  document.querySelector(".header-top")?.classList.remove("header-hidden");
+  document.documentElement.classList.remove("hdr-hidden");
+});
+searchInput?.addEventListener("blur", () => {
+  headerLock = false;
   requestAnimationFrame(applyHeaderVisibility);
 });
 
