@@ -946,12 +946,21 @@ function showFoodModal(food, group, d) {
   const modal = document.getElementById("foodModal");
   const body  = document.getElementById("modalBody");
 
+  // Bygg extra-rader (de hamnar i ett <details>-block längre ner)
   const extraRows = [];
-  if (Number.isFinite(d.fiber_g))     extraRows.push(`<li>Fiber: <strong><span id="calcFiber">0</span> g</strong></li>`);
-  if (Number.isFinite(d.sugar_g))     extraRows.push(`<li>${d.sugar_label ?? 'Socker'}: <strong><span id="calcSugar">0</span> g</strong></li>`);
-  if (Number.isFinite(d.salt_g))      extraRows.push(`<li>Salt: <strong><span id="calcSalt">0</span> g</strong></li>`);
-  if (Number.isFinite(d.satFat_g))    extraRows.push(`<li>Mättat fett: <strong><span id="calcSatFat">0</span> g</strong></li>`);
-  if (Number.isFinite(d.netCarbs_g))  extraRows.push(`<li>Netto-kolhydrater: <strong><span id="calcNetCarbs">0</span> g</strong></li>`);
+  if (Number.isFinite(d.fiber_g))     extraRows.push(`<li class="extra">Fiber: <strong><span id="calcFiber">0</span> g</strong></li>`);
+  if (Number.isFinite(d.sugar_g))     extraRows.push(`<li class="extra">${d.sugar_label ?? 'Tillsatt socker'}: <strong><span id="calcSugar">0</span> g</strong></li>`);
+  if (Number.isFinite(d.salt_g))      extraRows.push(`<li class="extra">Salt: <strong><span id="calcSalt">0</span> g</strong></li>`);
+  if (Number.isFinite(d.satFat_g))    extraRows.push(`<li class="extra">Mättat fett: <strong><span id="calcSatFat">0</span> g</strong></li>`);
+  if (Number.isFinite(d.netCarbs_g))  extraRows.push(`<li class="extra">Netto-kolhydrater: <strong><span id="calcNetCarbs">0</span> g</strong></li>`);
+
+  const extrasHtml = extraRows.length
+    ? `
+      <details class="nutr-extras">
+        <summary>Fler näringsvärden</summary>
+        <ul class="modal-extras">${extraRows.join('')}</ul>
+      </details>`
+    : '';
 
   body.innerHTML = `
     <h2>${food.namn}</h2>
@@ -963,13 +972,13 @@ function showFoodModal(food, group, d) {
     </p>
 
     <h3 style="margin-top:10px">Beräknat för <span id="modalQLabel">100</span> g</h3>
-    <ul id="modalCalcList" style="list-style:none; padding-left:0; margin-top:6px">
+    <ul id="modalCalcList" class="modal-main" style="list-style:none; padding-left:0; margin-top:6px">
       <li>Energi: <strong><span id="calcEnergy">0</span> kcal</strong></li>
       <li>Kolhydrater: <strong><span id="calcCarbs">0</span> g</strong></li>
       <li>Fett: <strong><span id="calcFat">0</span> g</strong></li>
       <li>Protein: <strong><span id="calcProtein">0</span> g</strong></li>
-      ${extraRows.join('')}
     </ul>
+    ${extrasHtml}
 
     <div class="modal-qty">
       <label for="modalQuantityNumber">Gram:</label>
