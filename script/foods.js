@@ -61,6 +61,10 @@ function showNoHits(term) {
     </div>`;
 }
 
+function clearEmptyStates() {
+  // ta bort både välkomst-rutan och "inga träffar"-rutan
+  document.querySelectorAll('.empty-state').forEach(el => el.remove());
+}
 
 const dietSelect = document.getElementById('dietSelect');
 dietSelect?.addEventListener('change', () => {
@@ -173,6 +177,8 @@ function renderInit(list, version, signal) {
   renderedCount = 0;
   isAppending = false;
 
+  clearEmptyStates();
+
   // Se till att scaffold finns (empty-state skapar resultsCards + knapp)
   if (!document.getElementById('resultsCards')) {
     showEmptyState();
@@ -222,9 +228,8 @@ async function renderNextChunk(version, signal) {
   const shownInChunk = await renderFoodCardsAppend(chunk, version, signal);
   renderedCount = end;
   isAppending = false;
-  // Dölj tom-state när vi ska visa resultat
-  document.getElementById('emptyState')?.remove();
 
+  clearEmptyStates();
 
   // Om vi fick för få i denna chunk: hämta nästa chunk automatiskt
   if (shownInChunk < 6 && renderedCount < currentList.length) {
