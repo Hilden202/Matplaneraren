@@ -562,6 +562,9 @@ function doSearch(rawTerm) {
   if (!lastSearchTerm) {
     // Tillbaka till hela listan (paginerat)
     renderInit(foodData, currentSearchVersion, currentAbortController.signal);
+  if (headerLock && isMobileLandscape()) {
+  setTimeout(() => searchInput.scrollIntoView({ block: "center", behavior: "instant" }), 0);
+  }
   if (!headerLock) {      // ⬅️ undvik hopp när tangentbordet är öppet
       scrollToResultsTop();
   }
@@ -580,6 +583,8 @@ function doSearch(rawTerm) {
   renderInit(filteredData, currentSearchVersion, currentAbortController.signal);
   if (!headerLock) {
       scrollToResultsTop();
+  } else if (isMobileLandscape()) {
+  setTimeout(() => searchInput.scrollIntoView({ block: "center", behavior: "instant" }), 0);
   }
 }
 
