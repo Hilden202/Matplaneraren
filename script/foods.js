@@ -38,6 +38,25 @@ const classCache = new Map();     // cache för /klassificeringar per livsmedels
 // Låsflagga för header (true medan sökfältet är i fokus)
 let headerLock = false;
 
+// Extra lås medan man aktivt skriver (släpps strax efter sista input)
+let typingLock = false;
+let typingUnlockTimer = null;
+const TYPING_UNLOCK_MS = 600; // justera vid behov
+
+function isHeaderLocked() {
+  return headerLock || typingLock;
+}
+
+// Scrolla bara resultatkolumnen (inte fönstret)
+function scrollResultsTopNoWindow() {
+  const left = document.querySelector('.main-left');
+  if (left && (left.scrollHeight - left.clientHeight) > 2) {
+    left.scrollTo({ top: 0, behavior: 'smooth' });
+    return true;
+  }
+  return false;
+}
+
 function setDrawerOpen(open) {
   if (!isMobile()) return;
   mobileDrawer.classList.toggle("open", open);
@@ -195,32 +214,37 @@ function getScrollY(){
   const root = getScrollRoot();
   return root ? root.scrollTop : window.scrollY;
 }
-function applyHeaderVisibility(){
+
+function applyHeaderVisibility() {
   const header = document.querySelector(".header-top");
   if (!header || !isMobileAny()) {
     header?.classList.remove("header-hidden");
     return;
   }
-  if (headerLock) {
+
+  // Om något lås är aktivt: håll headern synlig och hoppa ur.
+  if (isHeaderLocked()) {
     header.classList.remove("header-hidden");
     document.documentElement.classList.remove("hdr-hidden");
     return;
   }
+
   const y = getScrollY();
   const nearTop = y <= 8;
   const scrollingDown = y > lastScrollY;
-  // Dölj vid nedåt-skroll, visa nära toppen eller vid uppåt-skroll
+
   if (!nearTop && scrollingDown) {
     header.classList.add("header-hidden");
-    document.documentElement.classList.add("hdr-hidden");   // ⬅ root-flagga
+    document.documentElement.classList.add("hdr-hidden");
   } else {
     header.classList.remove("header-hidden");
-    document.documentElement.classList.remove("hdr-hidden"); // ⬅ stäng av
+    document.documentElement.classList.remove("hdr-hidden");
   }
-  // räkna om högerkolumnens höjder när läget ändras
+
   requestAnimationFrame(adjustSelectedListHeight);
   lastScrollY = y;
 }
+
 function bindAutoHideHeader(){
   const root = getScrollRoot() || window;
   const onScroll = () => {
@@ -551,6 +575,15 @@ function scrollToResultsTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function keepSearchInView() {
+  // bara när tangentbordet är uppe (dvs headerLock) och i liggande
+  if (headerLock && isMobileLandscape()) {
+    requestAnimationFrame(() => {
+      searchInput.scrollIntoView({ block: "center", behavior: "auto" });
+    });
+  }
+}
+
 function doSearch(rawTerm) {
   const searchTerm = (rawTerm || "").toLowerCase();
   lastSearchTerm = searchTerm.trim();
@@ -562,6 +595,7 @@ function doSearch(rawTerm) {
   if (!lastSearchTerm) {
     // Tillbaka till hela listan (paginerat)
     renderInit(foodData, currentSearchVersion, currentAbortController.signal);
+    keepSearchInView();
   if (headerLock && isMobileLandscape()) {
   setTimeout(() => searchInput.scrollIntoView({ block: "center", behavior: "instant" }), 0);
   }
@@ -581,6 +615,7 @@ function doSearch(rawTerm) {
   }
 
   renderInit(filteredData, currentSearchVersion, currentAbortController.signal);
+  keepSearchInView();
   if (!headerLock) {
       scrollToResultsTop();
   } else if (isMobileLandscape()) {
