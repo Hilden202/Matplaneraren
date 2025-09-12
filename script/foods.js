@@ -795,7 +795,7 @@ function updateSelectedFoodsList() {
           onclick="editFood(${i})" title="Redigera"
         >
           <span class="qty">${item.quantity} g</span>
-          <strong class="name">${trimmedName}</strong>
+          <b class="name">${trimmedName}</b>
         </button>
         <button
           class="adjust-button remove"
