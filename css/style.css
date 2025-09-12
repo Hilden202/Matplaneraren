@@ -876,3 +876,22 @@ button:not(.clear-btn):hover{
 }
 .source-note a{ color: #006d6d; text-decoration: none; }
 .source-note a:hover{ text-decoration: underline; }
+
+/* Neutral länk-stil för extern knapp */
+.btn-secondary.external {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #006d6d;             /* teal-ton, samma accent som sidan */
+  text-decoration: none;
+  background: transparent;    /* ingen bakgrund */
+  border: none;               /* ingen kant */
+  padding: 0;                 /* ingen extra padding */
+  cursor: pointer;
+}
+
+.btn-secondary.external:hover {
+  text-decoration: underline;
+  color: #004f4f;             /* mörkare teal vid hover */
+}

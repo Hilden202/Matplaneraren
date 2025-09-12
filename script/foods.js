@@ -1016,9 +1016,7 @@ function showFoodModal(food, group, d) {
       <input type="number" id="modalQuantityNumber" class="quantity-input" min="0" step="1" value="100">
       <input type="range" id="modalQuantitySlider" class="quantity-slider" min="0" step="10" max="${DEFAULT_SLIDER_MAX}" value="100">
     </div>
-
-    <div class="modal-actions">
-      <div class="modal-actions">
+<div class="modal-actions">
   <button id="modalAddBtn">Lägg till</button>
   <a class="btn-secondary external"
      href="${lvUrl}"
@@ -1030,10 +1028,8 @@ function showFoodModal(food, group, d) {
 </div>
 
 <p class="modal-source">
-  Källa: Livsmedelsverkets Livsmedelsdatabas
-  ${sourceDate ? `version ${sourceDate}` : ``}.
+  Källa: Livsmedelsverkets Livsmedelsdatabas${sourceDate ? `, version ${sourceDate}` : ``}.
 </p>
-
     </div>
   `;
 
