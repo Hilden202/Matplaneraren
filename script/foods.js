@@ -595,7 +595,12 @@ searchInput.addEventListener("input", function () {
   const term = searchInput.value;
   if (clearBtn) clearBtn.style.visibility = term ? "visible" : "hidden";
   clearTimeout(inputDebounce);
-  inputDebounce = setTimeout(() => doSearch(term), 150); // 150ms debounce
+  inputDebounce = setTimeout(() => {
+    doSearch(term);
+    if (headerLock && isMobileLandscape()) {
+      setTimeout(() => searchInput.scrollIntoView({ block: "center", behavior: "instant" }), 0);
+    }
+  }, 150);
 });
 
 searchInput.addEventListener("keydown", function (event) {
@@ -606,20 +611,18 @@ searchInput.addEventListener("keydown", function (event) {
   }
 });
 
-searchInput?.addEventListener("focus", () => {
+searchInput.addEventListener("focus", () => {
   headerLock = true;
-  if (isMobileAny() && !isMobileLandscape()) {
-    // PORTRÄTT: visa headern direkt
+  if (!isMobileLandscape()) {
+    // Porträtt: visa headern
     document.querySelector(".header-top")?.classList.remove("header-hidden");
     document.documentElement.classList.remove("hdr-hidden");
-  } else if (isMobileLandscape()) {
-    // LIGGANDE: behåll aktuellt läge, men säkra att input syns över tangentbordet
-    setTimeout(() => {
-      searchInput.scrollIntoView({ block: "center", behavior: "smooth" });
-    }, 50);
+  } else {
+    // Landskap: rör inte headern; se bara till att fältet syns
+    setTimeout(() => searchInput.scrollIntoView({ block: "center", behavior: "instant" }), 50);
   }
 });
-searchInput?.addEventListener("blur", () => {
+searchInput.addEventListener("blur", () => {
   headerLock = false;
   requestAnimationFrame(applyHeaderVisibility);
 });
