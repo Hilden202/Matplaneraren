@@ -934,15 +934,22 @@ button:not(.clear-btn):hover{
   font-style: italic;
 }
 
-/* iOS fix: använd svw så font-size följer stående/liggande korrekt */
-@supports (width: 100svw) {
-  .site-title{ font-size: clamp(26px, 4.5svw, 40px); }
-  .site-sub{   font-size: clamp(14px, 2.2svw, 18px); }
-  .header-meta .data-badge { font-size: clamp(12px, 2.8svw, 16px); }
-  h3{ font-size: clamp(18px, 2.4svw, 25px); }
-  #summary p{ font-size: clamp(14px, 1.9svw, 16px); }
-  /* mobil-drawer rubriker */
-  .drawer-content h3,
-  .sidebar-header h3,
-  #summary h3 { font-size: clamp(18px, 2.4svw, 24px); }
+/* --- iOS: förhindra att texten i mobilen-drawern behåller landskapsstorlek --- */
+@media (max-width: 768px) {
+  /* stäng av textinflation just i drawern */
+  .mobile-drawer, .mobile-drawer * {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* använd fasta rem/px i drawern (ingen vw) */
+  .mobile-drawer #summary p {
+    font-size: 15px !important;
+    line-height: 1.4;
+  }
+  .mobile-drawer .drawer-content h3,
+  .mobile-drawer .sidebar-header h3,
+  .mobile-drawer #summary h3 {
+    font-size: 20px !important;
+    line-height: 1.25;
+  }
 }

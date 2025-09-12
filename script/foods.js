@@ -322,7 +322,6 @@ function setHeaderHeightVar() {
   document.documentElement.style.setProperty("--header-h", `${h}px`);
 }
 window.addEventListener("load", setHeaderHeightVar);
-window.addEventListener("resize", setHeaderHeightVar);
 
 function isMobile() {
   return window.matchMedia("(max-width: 768px)").matches;
@@ -368,17 +367,40 @@ function mountBackToRightColumn() {
   setupInfiniteScroll(currentSearchVersion, currentAbortController?.signal);
 
  }
-window.addEventListener("resize", () => {
-  syncDrawerMount();
-  updateDrawerCount();
-});
-// iOS rotations-nudge (säker, påverkar inget annat)
+ 
+// Enhetlig resize-handler (debouncad via rAF)
+const onResize = (() => {
+  let rAF = null;
+  return () => {
+    if (rAF) return;
+    rAF = requestAnimationFrame(() => {
+      rAF = null;
+      setHeaderHeightVar();     // uppdatera --header-h
+      syncDrawerMount();        // flytta in/ut innehåll mellan drawer/kolumn
+      adjustSelectedListHeight(); // räkna om list-höjd
+      updateDrawerCount();      // uppdatera "(n)"
+    });
+  };
+})();
+window.addEventListener("resize", onResize);
+
+// iOS rotation: tvinga reflow i drawern så textstorlek inte "fastnar"
 window.addEventListener("orientationchange", () => {
   setTimeout(() => {
     setHeaderHeightVar();
+    if (mobileDrawer?.classList.contains("open")) {
+      const panel = document.getElementById("drawerContent");
+      if (panel) {
+        panel.style.display = "none";
+        void panel.offsetHeight;   // force reflow
+        panel.style.display = "";
+      }
+    }
     adjustSelectedListHeight();
+    updateDrawerCount();
   }, 60);
 });
+
 document.addEventListener("DOMContentLoaded", () => {
   syncDrawerMount();       // flytta in denna
   showEmptyState();        // din välkomstvy
