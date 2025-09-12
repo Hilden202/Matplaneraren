@@ -324,7 +324,7 @@ function setHeaderHeightVar() {
 window.addEventListener("load", setHeaderHeightVar);
 
 function isMobile() {
-  return window.matchMedia("(max-width: 768px)").matches;
+  return window.matchMedia("(max-width: 768px) and (orientation: portrait)").matches;
 }
 
 function mountIntoDrawer() {
@@ -367,7 +367,7 @@ function mountBackToRightColumn() {
   setupInfiniteScroll(currentSearchVersion, currentAbortController?.signal);
 
  }
- 
+
 // Enhetlig resize-handler (debouncad via rAF)
 const onResize = (() => {
   let rAF = null;
