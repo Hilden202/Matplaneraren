@@ -903,3 +903,11 @@ button:not(.clear-btn):hover{
   line-height: 1.4;
   text-align: right;     /* valfritt: högerställ för diskret placering */
 }
+
+/* Liten diskret räknare bredvid "Matlista & Summering" */
+.drawer-count {
+  margin-left: 6px;         /* lite luft från texten */
+  font-size: 0.85em;        /* lite mindre än normal text */
+  font-weight: 500;
+  color: rgba(255,255,255,0.85); /* samma färg som texten, lite nedtonad */
+}

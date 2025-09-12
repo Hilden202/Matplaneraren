@@ -44,6 +44,51 @@ let booted = false;
 const nutritionCache = new Map(); // cache för /naringsvarden per livsmedels-id
 const classCache = new Map();     // cache för /klassificeringar per livsmedels-id
 
+function setDrawerOpen(open) {
+  if (!isMobile()) return;
+  mobileDrawer.classList.toggle("open", open);
+  drawerHandle.setAttribute("aria-expanded", open ? "true" : "false");
+  mobileDrawer.setAttribute("aria-hidden", open ? "false" : "true");
+
+  document.documentElement.style.overflow = open ? "hidden" : "";
+  document.body.style.overflow = open ? "hidden" : "";
+
+  if (open) {
+    drawerContent.scrollTop = 0;
+    requestAnimationFrame(adjustSelectedListHeight);
+  }
+
+  // refresh the little "(n)" visibility on every toggle
+  updateDrawerCount();
+}
+
+function setDrawerCount(n) {
+  const el = document.getElementById('drawerCountText');
+  const drawer = document.getElementById('mobileDrawer');
+  if (!el || !drawer) return;
+
+  if (n > 0 && !drawer.classList.contains('open')) {
+    el.textContent = `antal poster: ${n}`;
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
+}
+
+function updateDrawerCount() {
+  const el = document.getElementById('drawerCount');
+  if (!el) return;
+
+  const count = (selectedFoods?.length || 0);
+
+  // only show when drawer is CLOSED and there are items
+  const drawerIsClosed = !mobileDrawer?.classList.contains('open');
+  const shouldShow = isMobile() && drawerIsClosed && count > 0;
+
+  el.textContent = shouldShow ? `(${count})` : '';
+}
+
+
 function getScrollRoot() {
   const left = document.querySelector('.main-left');
   if (left && (left.scrollHeight - left.clientHeight) > 2) {
@@ -333,20 +378,18 @@ function mountBackToRightColumn() {
 }
 
 
-function setDrawerOpen(open) {
-  if (!isMobile()) return;
-  mobileDrawer.classList.toggle("open", open);
-  drawerHandle.setAttribute("aria-expanded", open ? "true" : "false");
-  mobileDrawer.setAttribute("aria-hidden", open ? "false" : "true");
+function setDrawerCount(n) {
+  const el = document.getElementById('drawerCountText');
+  const drawer = document.getElementById('mobileDrawer');
+  if (!el || !drawer) return;
 
-  // Lås bakgrund vid öppen låda
-  document.documentElement.style.overflow = open ? "hidden" : "";
-  document.body.style.overflow = open ? "hidden" : "";
+  const isOpen = drawer.classList.contains('open');
 
-  if (open) {
-    // hoppa till toppen och räkna ut maxhöjd för listan efter att panelen renderats
-    drawerContent.scrollTop = 0;
-    requestAnimationFrame(adjustSelectedListHeight);
+  if (n > 0 && !isOpen) {
+    el.textContent = `(antal poster: ${n})`;
+    el.hidden = false;
+  } else {
+    el.hidden = true;
   }
 }
 
@@ -376,9 +419,16 @@ function setDrawerOpen(open) {
   setupInfiniteScroll(currentSearchVersion, currentAbortController?.signal);
 
  }
-window.addEventListener("resize", syncDrawerMount);
-document.addEventListener("DOMContentLoaded", syncDrawerMount);
-document.addEventListener("DOMContentLoaded", () => { showEmptyState(); booted = true; });
+window.addEventListener("resize", () => {
+  syncDrawerMount();
+  updateDrawerCount();
+});
+document.addEventListener("DOMContentLoaded", () => {
+  syncDrawerMount();       // flytta in denna
+  showEmptyState();        // din välkomstvy
+  booted = true;
+  updateDrawerCount();     // initiera "(n)" direkt
+});
 
 let foodData = [];
 let selectedFoods = [];
@@ -798,7 +848,7 @@ function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = nu
       netCarbs: extras.netCarbs ?? null
     });
   }
-
+  setDrawerCount(selectedFoods.length);
   updateSelectedFoodsList();
   adjustSelectedListHeight();
   updateSummary();
@@ -836,6 +886,7 @@ function updateSelectedFoodsList() {
         </li>`;
 
     }
+    setDrawerCount(selectedFoods.length);
     updateSummary();
 }
 
@@ -930,6 +981,7 @@ function updateSummary() {
 
   // Håller höjder i schack på mobil/desktop
   adjustSelectedListHeight();
+  updateDrawerCount();
 }
 
 function syncRow(index, qty, numberEl, sliderEl, labelEl) {
