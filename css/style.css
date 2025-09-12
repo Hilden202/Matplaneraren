@@ -173,6 +173,25 @@ input[type="number"] {
   margin-bottom: 12px;
 }
 
+.food-amount.as-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;   /* normal text */
+  color: #222;        /* standardfärg */
+  cursor: pointer;
+  text-align: left;
+}
+
+.food-amount.as-link:hover,
+.food-amount.as-link:focus {
+  font-weight: 500;   /* lite boldare vid hover/fokus */
+  text-decoration: none;
+  background: none;
+}
+
 .adjust-button {
   padding: 4px 8px;
   border-radius: 4px;

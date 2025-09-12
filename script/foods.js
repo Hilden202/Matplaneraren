@@ -753,7 +753,8 @@ function addFood(id, namn, energiKcal, kolhydrater, fett, protein, quantity = nu
       sugar_label: extras.sugar_label ?? null,
       salt:     extras.salt ?? null,
       satFat:   extras.satFat ?? null,
-      netCarbs: extras.netCarbs ?? null
+      netCarbs: extras.netCarbs ?? null,
+      groupName: extras.groupName ?? null 
     });
   }
   updateDrawerCount();
@@ -777,22 +778,33 @@ function updateSelectedFoodsList() {
 
         const sliderMax = Math.max(DEFAULT_SLIDER_MAX, item.quantity);
 
-        foodList.innerHTML +=
-        `<li class="food-list-item">
-            <input type="range" min="0" max="${sliderMax}" step="10"
-                    value="${item.quantity}"
-                    class="quantity-slider"
-                    oninput="onSlider(${i}, this)">
-            <input type="number" min="0" step="1"
-                    value="${item.quantity}"
-                    class="quantity-input"
-                    oninput="onNumber(${i}, this)">
-            <span class="food-amount">${item.quantity} g ${trimmedName}</span>
-            <button class="adjust-button remove" onclick="removeFood(${i})" title="Ta bort">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-        </li>`;
-
+    foodList.innerHTML += `
+      <li class="food-list-item">
+        <input
+          type="range" min="0" max="${sliderMax}" step="10"
+          value="${item.quantity}" class="quantity-slider"
+          oninput="onSlider(${i}, this)"
+        >
+        <input
+          type="number" min="0" step="1"
+          value="${item.quantity}" class="quantity-input"
+          oninput="onNumber(${i}, this)"
+        >
+        <button
+          class="food-amount as-link" type="button"
+          onclick="editFood(${i})" title="Redigera"
+        >
+          <span class="qty">${item.quantity} g</span>
+          <strong class="name">${trimmedName}</strong>
+        </button>
+        <button
+          class="adjust-button remove"
+          onclick="removeFood(${i})" title="Ta bort"
+          aria-label="Ta bort ${trimmedName}"
+        >
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </li>`;
     }
     updateDrawerCount();
     updateSummary();
@@ -911,29 +923,49 @@ function onNumber(index, numberEl) {
   syncRow(index, parseInt(numberEl.value, 10), numberEl, sliderEl, labelEl);
 }
 
+window.editFood = function(index){
+  const it = selectedFoods[index];
+  if(!it) return;
 
-function showFoodModal(food, group, d) {
+  // Bygg “food” och “detail” utifrån befintliga per-100g-värden du redan sparar
+  const food   = { id: it.id, namn: it.name };
+  const group  = it.groupName || "(okänd grupp)";
+
+  const d = {
+    energy_kcal: it.energiKcal ?? 0,
+    carbs_g:     it.kolhydrater ?? 0,
+    fat_g:       it.fett ?? 0,
+    protein_g:   it.protein ?? 0,
+    fiber_g:     Number.isFinite(it.fiber) ? it.fiber : null,
+    sugar_g:     Number.isFinite(it.sugar) ? it.sugar : null,
+    sugar_label: it.sugar_label ?? null,
+    salt_g:      Number.isFinite(it.salt) ? it.salt : null,
+    satFat_g:    Number.isFinite(it.satFat) ? it.satFat : null,
+    netCarbs_g:  Number.isFinite(it.netCarbs) ? it.netCarbs : null
+  };
+
+  showFoodModal(food, group, d, { mode: "edit", editIndex: index, presetQty: it.quantity });
+};
+
+function showFoodModal(food, group, d, options = {}) {
   const modal = document.getElementById("foodModal");
   const body  = document.getElementById("modalBody");
+  const isEdit = options.mode === "edit";
+  const presetQty = Number.isFinite(options.presetQty) ? options.presetQty : 100;
 
-  // Bygg extra-rader (de hamnar i ett <details>-block längre ner)
+  // === Bygg HTML-innehållet ===
   const extraRows = [];
   if (Number.isFinite(d.fiber_g))     extraRows.push(`<li class="extra">Fiber: <strong><span id="calcFiber">0</span> g</strong></li>`);
-  if (Number.isFinite(d.sugar_g))     extraRows.push(`<li class="extra">${d.sugar_label ?? 'Tillsatt socker'}: <strong><span id="calcSugar">0</span> g</strong></li>`);
+  if (Number.isFinite(d.sugar_g))     extraRows.push(`<li class="extra">${d.sugar_label ?? 'Socker'}: <strong><span id="calcSugar">0</span> g</strong></li>`);
   if (Number.isFinite(d.salt_g))      extraRows.push(`<li class="extra">Salt: <strong><span id="calcSalt">0</span> g</strong></li>`);
   if (Number.isFinite(d.satFat_g))    extraRows.push(`<li class="extra">Mättat fett: <strong><span id="calcSatFat">0</span> g</strong></li>`);
   if (Number.isFinite(d.netCarbs_g))  extraRows.push(`<li class="extra">Netto-kolhydrater: <strong><span id="calcNetCarbs">0</span> g</strong></li>`);
 
   const extrasHtml = extraRows.length
-  ? `
-  <details class="nutr-extras">
-  <summary>Fler näringsvärden</summary>
-  <ul class="modal-extras">${extraRows.join('')}</ul>
-  </details>`
-  : '';
-  
+    ? `<details class="nutr-extras"><summary>Fler näringsvärden</summary><ul class="modal-extras">${extraRows.join('')}</ul></details>`
+    : '';
+
   const lvUrl = lvFoodUrl(food.id);
-  const sourceDate = window.lvReleaseDateText || ""; // om du redan läser ut datumet globalt
 
   body.innerHTML = `
     <h2>${food.namn}</h2>
@@ -958,32 +990,30 @@ function showFoodModal(food, group, d) {
       <input type="number" id="modalQuantityNumber" class="quantity-input" min="0" step="1" value="100">
       <input type="range" id="modalQuantitySlider" class="quantity-slider" min="0" step="10" max="${DEFAULT_SLIDER_MAX}" value="100">
     </div>
-<div class="modal-actions">
-  <button id="modalAddBtn">Lägg till</button>
-  <a class="btn-secondary external"
-     href="${lvUrl}"
-     target="_blank"
-     rel="noopener noreferrer"
-     aria-label="Öppna fullständiga näringsvärden för ${food.namn} hos Livsmedelsverket (ny flik)">
-     Visa hos Livsmedelsverket
-  </a>
-</div>
-
-<p class="modal-source">
-  Källa: Livsmedelsverkets Livsmedelsdatabas${sourceDate ? `, version ${sourceDate}` : ``}.
-</p>
+    <div class="modal-actions">
+      <button id="modalAddBtn">${isEdit ? "Spara" : "Lägg till"}</button>
+      <a class="btn-secondary external" href="${lvUrl}" target="_blank" rel="noopener">Visa hos Livsmedelsverket</a>
     </div>
+    <p class="modal-source">
+      Källa: Livsmedelsverkets Livsmedelsdatabas, version ${LMV_VERSION}.
+    </p>
   `;
 
+  // === Bindningar till input/sliders ===
   const num    = document.getElementById("modalQuantityNumber");
   const sld    = document.getElementById("modalQuantitySlider");
   const qLabel = document.getElementById("modalQLabel");
+
+  const hardMax = parseInt(sld.max, 10) || DEFAULT_SLIDER_MAX;
+  if (presetQty > hardMax) sld.max = String(presetQty);
+
+  num.value = presetQty;
+  sld.value = presetQty;
 
   const eEl = document.getElementById("calcEnergy");
   const cEl = document.getElementById("calcCarbs");
   const fEl = document.getElementById("calcFat");
   const pEl = document.getElementById("calcProtein");
-
   const fiEl = document.getElementById("calcFiber");
   const suEl = document.getElementById("calcSugar");
   const saEl = document.getElementById("calcSalt");
@@ -991,55 +1021,68 @@ function showFoodModal(food, group, d) {
   const ncEl = document.getElementById("calcNetCarbs");
 
   const round1 = (n) => Math.round(n * 10) / 10;
-
   const updateCalc = (q) => {
     const val = Math.max(0, isNaN(q) ? 0 : Math.round(q));
-    if (parseInt(num.value, 10) !== val) num.value = val;
-    if (parseInt(sld.value, 10) !== val) sld.value = val;
-    if (val > parseInt(sld.max, 10)) sld.max = val;
-
-    const f = val / 100;
+    num.value = val;
+    sld.value = val;
     qLabel.textContent = String(val);
 
+    const f = val / 100;
     eEl.textContent = round1(d.energy_kcal  * f).toFixed(1);
     cEl.textContent = round1(d.carbs_g      * f).toFixed(1);
     fEl.textContent = round1(d.fat_g        * f).toFixed(1);
     pEl.textContent = round1(d.protein_g    * f).toFixed(1);
-
-    if (fiEl && Number.isFinite(d.fiber_g))    fiEl.textContent = round1(d.fiber_g * f).toFixed(1);
-    if (suEl && Number.isFinite(d.sugar_g))    suEl.textContent = round1(d.sugar_g * f).toFixed(1);
-    if (saEl && Number.isFinite(d.salt_g))     saEl.textContent = round1(d.salt_g  * f).toFixed(1);
-    if (sfEl && Number.isFinite(d.satFat_g))   sfEl.textContent = round1(d.satFat_g * f).toFixed(1);
-    if (ncEl && Number.isFinite(d.netCarbs_g)) ncEl.textContent = round1(d.netCarbs_g * f).toFixed(1);
+    if (fiEl) fiEl.textContent = round1(d.fiber_g * f).toFixed(1);
+    if (suEl) suEl.textContent = round1(d.sugar_g * f).toFixed(1);
+    if (saEl) saEl.textContent = round1(d.salt_g  * f).toFixed(1);
+    if (sfEl) sfEl.textContent = round1(d.satFat_g * f).toFixed(1);
+    if (ncEl) ncEl.textContent = round1(d.netCarbs_g * f).toFixed(1);
   };
 
   num.addEventListener("input", () => updateCalc(parseInt(num.value, 10) || 0));
   sld.addEventListener("input", () => updateCalc(parseInt(sld.value, 10) || 0));
 
-  document.getElementById("modalAddBtn").onclick = () => {
-    const q = parseInt(num.value, 10) || 0;
-    addFood(
-      food.id, food.namn,
-      d.energy_kcal, d.carbs_g, d.fat_g, d.protein_g,
-      q,
-      { fiber: d.fiber_g, sugar: d.sugar_g, sugar_label: d.sugar_label, salt: d.salt_g, satFat: d.satFat_g, netCarbs: d.netCarbs_g }
-    );
-    closeFoodModal();
-  };
+  // === Add/Edit-knapp ===
+  const btn = document.getElementById("modalAddBtn");
+  if (isEdit) {
+    btn.onclick = () => {
+      const q = parseInt(num.value, 10) || 0;
+      selectedFoods[options.editIndex].quantity = q;
+      updateSelectedFoodsList();
+      adjustSelectedListHeight();
+      updateSummary();
+      closeFoodModal();
+    };
+  } else {
+    btn.onclick = () => {
+      const q = parseInt(num.value, 10) || 0;
+      addFood(
+        food.id, food.namn,
+        d.energy_kcal, d.carbs_g, d.fat_g, d.protein_g,
+        q,
+        {
+          fiber: d.fiber_g, sugar: d.sugar_g, sugar_label: d.sugar_label,
+          salt: d.salt_g, satFat: d.satFat_g, netCarbs: d.netCarbs_g,
+          groupName: group
+        }
+      );
+      closeFoodModal();
+    };
+  }
 
-  modal.classList.add('open');
-  modal.removeAttribute('hidden');
-  modal.setAttribute('aria-hidden','false');
-
+  // === Öppna modal ===
+  modal.classList.add("open");
+  modal.removeAttribute("hidden");
+  modal.setAttribute("aria-hidden","false");
   modal.querySelector(".close").onclick = closeFoodModal;
   modal.addEventListener('click', onModalBackdropClick);
   modal.addEventListener('touchstart', onModalBackdropClick, { passive: true });
-
-  const onEsc = (ev) => { if (ev.key === 'Escape') closeFoodModal(); };
+  const onEsc = (ev) => { if (ev.key === "Escape") closeFoodModal(); };
   document.addEventListener('keydown', onEsc);
   modal._onEsc = onEsc;
 
-  updateCalc(100);
+  // Initiera med rätt mängd
+  updateCalc(presetQty);
 }
 
 function closeFoodModal() {
