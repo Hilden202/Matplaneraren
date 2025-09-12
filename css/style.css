@@ -868,3 +868,25 @@ button:not(.clear-btn):hover{
 .modal-extras li.extra strong {
   font-weight: 600;
 }
+
+.modal{
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* lite högre än headern för säkerhets skull */
+  background: rgba(0,0,0,.45);
+
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+
+  /* ⬇️ aldrig lägre än headern, annars använd din preferens */
+  padding: max(calc(var(--header-h) + 8px), var(--modal-top)) 12px var(--modal-bottom);
+
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.modal.open { display:flex; }
+
+@supports (height: 100svh){
+  .modal{ min-height: 100svh; }
+}

@@ -468,6 +468,7 @@ function scrollToResultsTop() {
 }
 
 function doSearch(rawTerm) {
+  clearEmptyStates();
   const searchTerm = (rawTerm || "").toLowerCase();
   lastSearchTerm = searchTerm.trim();
 
@@ -1043,6 +1044,15 @@ function showFoodModal(food, group, d) {
     closeFoodModal();
   };
 
+  // 1) stäng ev. öppet tangentbord (iOS/Android)
+  if (document.activeElement && document.activeElement.blur) {
+    document.activeElement.blur();
+  }
+
+  // 2) lås bakgrundsscroll medan modalen är öppen
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+
   modal.classList.add('open');
   modal.removeAttribute('hidden');
   modal.setAttribute('aria-hidden','false');
@@ -1073,7 +1083,8 @@ function closeFoodModal() {
     document.removeEventListener('keydown', modal._onEsc);
     delete modal._onEsc;
   }
-  // Inga overflow-återställningar behövs, eftersom vi aldrig låste dem.
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
 }
 
 document.getElementById("clearListButton").addEventListener("click", function () {
