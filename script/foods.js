@@ -168,36 +168,47 @@ dietSelect?.addEventListener('change', () => {
   doSearch(searchInput.value);
 });
 
-const clearBtn = document.getElementById("clearSearch");
-if (clearBtn) {
-  clearBtn.addEventListener("click", () => {
-    // 0) Fånga ett bra scrollmål innan DOM ändras
-    const firstCard = document.querySelector(".food-card");
-    const headerH = parseInt(
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--header-h')
-    ) || 0;
 
-    // Scrolla till översta kortet om det finns, annars till resultatcontainern
-    const targetY = ((firstCard
-        ? firstCard.getBoundingClientRect().top + window.scrollY
-        : nutritionOutput.offsetTop) - Math.max(0, headerH - 8));
-
-    // 1) Rensa fältet direkt (snappy UI)
-    searchInput.value = "";
-    clearBtn.style.visibility = "hidden";
-    searchInput.focus();
-
-    // 2) Scrolla med nuvarande layout kvar
-    window.scrollTo({ top: targetY, behavior: "smooth" });
-
-    // 3) Töm resultaten i nästa frame (så scrollen hinner börja)
-    requestAnimationFrame(() => {
-      clearTimeout(inputDebounce);
-      doSearch(""); // snabb-töm: inga fetch/render av kort
-    });
-  });
+function unlockTypingSoon(delay = 450){
+  clearTimeout(typingUnlockTimer);
+  typingUnlockTimer = setTimeout(() => {
+    typingLock = false;
+    applyHeaderVisibility();
+  }, delay);
 }
+
+const clearBtn = document.getElementById("clearSearch");
+clearBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  if (!searchInput.value) return;  // inget att rensa
+
+  // Lås headern (som vid skrivning) så den inte hoppar
+  headerLock = true;
+  typingLock = true;
+
+  // Rensa fältet snabbt, håll fokus så tangentbordet stannar uppe
+  searchInput.value = "";
+  clearBtn.style.visibility = "hidden";
+  searchInput.focus();
+
+  // Kör tom sökning och justera vy utan fönster-scroll
+  requestAnimationFrame(() => {
+    clearTimeout(inputDebounce);
+    doSearch("");
+
+    if (isMobileLandscape()) {
+      requestAnimationFrame(() => {
+        searchInput.scrollIntoView({ block: "center", behavior: "auto" });
+      });
+    } else {
+      scrollResultsTopNoWindow();
+    }
+
+    // Släpp låset strax efter att layout/render landat
+    unlockTypingSoon(450);
+  });
+});
+
 
 // (valfritt) Stäng även på ESC
 document.addEventListener("keydown", (e) => {
@@ -575,16 +586,14 @@ function scrollToResultsTopWithOffset({ instant = false } = {}) {
   if (!firstCard) return;
 
   const left = document.querySelector('.main-left');
-  const behavior = instant ? "instant" : "smooth";
+  const behavior = instant ? "auto" : "smooth";  // <-- viktiga ändringen
 
-  // Skrolla vänsterpanelen om den faktiskt skrollar
   if (left && (left.scrollHeight - left.clientHeight) > 2) {
     const y = Math.max(0, firstCard.offsetTop - headerH - 8);
     left.scrollTo({ top: y, behavior });
     return;
   }
 
-  // Annars skrolla fönstret
   const y = Math.max(0, firstCard.getBoundingClientRect().top + window.scrollY - headerH - 8);
   window.scrollTo({ top: y, behavior });
 }
@@ -607,7 +616,15 @@ function doSearch(rawTerm) {
   currentSearchVersion++;
 
   if (!lastSearchTerm) {
-    renderInit(foodData, currentSearchVersion, currentAbortController.signal);
+    renderInit(filteredData, currentSearchVersion, currentAbortController.signal);
+    requestAnimationFrame(() => {
+  if (!headerLock) {
+    scrollToResultsTopWithOffset({ instant: false });
+  } else if (isMobileLandscape()) {
+    scrollToResultsTopWithOffset({ instant: true });
+    searchInput.scrollIntoView({ block: "center", behavior: "auto" });
+  }
+});
 
     if (!headerLock) {
       // Porträtt / inget tangentbord: normal smooth offset
@@ -647,14 +664,17 @@ function doSearch(rawTerm) {
 if (clearBtn) clearBtn.style.visibility = searchInput.value ? "visible" : "hidden";
 
 searchInput.addEventListener("input", () => {
+  typingLock = true;                         // lås medan vi skriver
   const term = searchInput.value;
   if (clearBtn) clearBtn.style.visibility = term ? "visible" : "hidden";
+
   clearTimeout(inputDebounce);
   inputDebounce = setTimeout(() => {
     doSearch(term);
     if (headerLock && isMobileLandscape()) {
       searchInput.scrollIntoView({ block: "center", behavior: "auto" });
     }
+    unlockTypingSoon(450);                   // släpp låset strax efter render
   }, 150);
 });
 
