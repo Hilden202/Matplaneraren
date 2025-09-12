@@ -959,3 +959,18 @@ button:not(.clear-btn):hover{
     line-height: 1.25;
   }
 }
+
+/* Mobil (portrait + landscape): auto-hide header, reveal on scroll up */
+@media (max-width: 768px) {
+  .header-top{
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transform: translateY(0);
+    transition: transform .18s ease;
+    will-change: transform;
+  }
+  .header-top.header-hidden{
+    transform: translateY(calc(-1 * var(--header-h)));
+  }
+}

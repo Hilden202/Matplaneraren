@@ -184,6 +184,48 @@ const selectedFoodsListEl = document.getElementById("selectedFoodsList");
 const summaryEl = document.getElementById("summary");
 const sidebarHeader = document.querySelector(".sidebar-header");
 
+function isMobileAny(){
+  return window.matchMedia("(max-width: 768px)").matches;
+}
+
+// Auto-hide header i alla mobila lägen (stående + liggande)
+let lastScrollY = 0;
+let scrollingRAF = null;
+function getScrollY(){
+  const root = getScrollRoot();
+  return root ? root.scrollTop : window.scrollY;
+}
+function applyHeaderVisibility(){
+  const header = document.querySelector(".header-top");
+  if (!header || !isMobileAny()) {
+    header?.classList.remove("header-hidden");
+    return;
+  }
+  const y = getScrollY();
+  const nearTop = y <= 8;
+  const scrollingDown = y > lastScrollY;
+  // Dölj vid nedåt-skroll, visa nära toppen eller vid uppåt-skroll
+  if (!nearTop && scrollingDown) header.classList.add("header-hidden");
+  else                           header.classList.remove("header-hidden");
+  lastScrollY = y;
+}
+function bindAutoHideHeader(){
+  const root = getScrollRoot() || window;
+  const onScroll = () => {
+    if (scrollingRAF) return;
+    scrollingRAF = requestAnimationFrame(() => {
+      scrollingRAF = null;
+      applyHeaderVisibility();
+    });
+  };
+  (bindAutoHideHeader._unbind || (()=>{}))();
+  root.addEventListener("scroll", onScroll, { passive: true });
+  bindAutoHideHeader._unbind = () => root.removeEventListener("scroll", onScroll);
+  lastScrollY = getScrollY();
+  applyHeaderVisibility();
+}
+
+
 function makeFinder(nutritionData){
   const rows = (nutritionData || []).map(n => ({
     key: (n.namn || "").toLowerCase().trim().replace(/\s+/g,' '),
@@ -383,6 +425,7 @@ const onResize = (() => {
   };
 })();
 window.addEventListener("resize", onResize);
+window.addEventListener("resize", () => bindAutoHideHeader());
 
 // iOS rotation: tvinga reflow i drawern så textstorlek inte "fastnar"
 window.addEventListener("orientationchange", () => {
@@ -398,6 +441,7 @@ window.addEventListener("orientationchange", () => {
     }
     adjustSelectedListHeight();
     updateDrawerCount();
+    bindAutoHideHeader();
   }, 60);
 });
 
@@ -405,6 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
   syncDrawerMount();       // flytta in denna
   showEmptyState();        // din välkomstvy
   updateDrawerCount();     // initiera "(n)" direkt
+  bindAutoHideHeader();
 });
 
 let foodData = [];
@@ -530,6 +575,18 @@ searchInput.addEventListener("keydown", function (event) {
     clearTimeout(inputDebounce);
     doSearch(searchInput.value);
   }
+});
+
+// Visa header direkt när sökfältet får fokus (mobil)
+searchInput?.addEventListener("focus", () => {
+  if (isMobileAny()) {
+    document.querySelector(".header-top")?.classList.remove("header-hidden");
+  }
+});
+
+// När fokus lämnar: återställ synlighet baserat på aktuell scroll
+searchInput?.addEventListener("blur", () => {
+  requestAnimationFrame(applyHeaderVisibility);
 });
 
 function buildFilterPredicate(filterType) {
