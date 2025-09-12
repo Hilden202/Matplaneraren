@@ -67,6 +67,7 @@ function updateDrawerCount() {
 }
 
 
+
 function getScrollRoot() {
   const left = document.querySelector('.main-left');
   if (left && (left.scrollHeight - left.clientHeight) > 2) {
@@ -183,10 +184,6 @@ document.addEventListener("keydown", (e) => {
 const selectedFoodsListEl = document.getElementById("selectedFoodsList");
 const summaryEl = document.getElementById("summary");
 const sidebarHeader = document.querySelector(".sidebar-header");
-
-function isMobileAny(){
-  return window.matchMedia("(max-width: 768px)").matches;
-}
 
 // Auto-hide header i alla mobila lägen (stående + liggande)
 let lastScrollY = 0;
@@ -376,6 +373,14 @@ function setHeaderHeightVar() {
   document.documentElement.style.setProperty("--header-h", `${h}px`);
 }
 window.addEventListener("load", setHeaderHeightVar);
+
+function isMobileLandscape(){
+  return window.matchMedia("(max-width: 768px) and (orientation: landscape)").matches;
+}
+
+function isMobileAny(){
+  return window.matchMedia("(max-width: 768px)").matches;
+}
 
 function isMobile() {
   return window.matchMedia("(max-width: 768px) and (orientation: portrait)").matches;
@@ -589,24 +594,20 @@ searchInput.addEventListener("keydown", function (event) {
   }
 });
 
-// Visa header direkt när sökfältet får fokus (mobil)
-searchInput?.addEventListener("focus", () => {
-  if (isMobileAny()) {
-    document.querySelector(".header-top")?.classList.remove("header-hidden");
-  }
-});
-
-// När fokus lämnar: återställ synlighet baserat på aktuell scroll
-searchInput?.addEventListener("blur", () => {
-  requestAnimationFrame(applyHeaderVisibility);
-});
-
-// Lås headern synlig medan sökfältet är i fokus
+// Lås headern medan sökfältet har fokus – orienteringsmedvetet
 let headerLock = false;
 searchInput?.addEventListener("focus", () => {
   headerLock = true;
-  document.querySelector(".header-top")?.classList.remove("header-hidden");
-  document.documentElement.classList.remove("hdr-hidden");
+  if (isMobileAny() && !isMobileLandscape()) {
+    // PORTRÄTT: visa headern direkt
+    document.querySelector(".header-top")?.classList.remove("header-hidden");
+    document.documentElement.classList.remove("hdr-hidden");
+  } else if (isMobileLandscape()) {
+    // LIGGANDE: behåll aktuellt läge, men säkra att input syns över tangentbordet
+    setTimeout(() => {
+      searchInput.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 50);
+  }
 });
 searchInput?.addEventListener("blur", () => {
   headerLock = false;
