@@ -372,6 +372,13 @@ window.addEventListener("resize", () => {
   syncDrawerMount();
   updateDrawerCount();
 });
+// iOS rotations-nudge (säker, påverkar inget annat)
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => {
+    setHeaderHeightVar();
+    adjustSelectedListHeight();
+  }, 60);
+});
 document.addEventListener("DOMContentLoaded", () => {
   syncDrawerMount();       // flytta in denna
   showEmptyState();        // din välkomstvy
