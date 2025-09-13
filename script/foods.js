@@ -636,7 +636,6 @@ requestAnimationFrame(() => {
     scrollToResultsTopWithOffset({ instant: false });
   }
 });
-  keepSearchInView();
 }
 
 // Init: visa/dölj kryss
