@@ -981,7 +981,4 @@ button:not(.clear-btn):hover{
     top: 8px;
     height: calc(100vh - 8px);
   }
-  html.hdr-hidden .main-left {
-    margin-top: 8px; /* ta bort ev. extra glapp på vänstersidan */
-  }
 }
