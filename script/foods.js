@@ -31,7 +31,6 @@ let isAppending = false;
 let io = null;
 let sentinel = null;
 let dietFilter = { type: 'all' };
-let forceHeaderHidden = false; // döljer header oavsett scrollregler (liggande + skriv)
 
 const nutritionCache = new Map(); // cache för /naringsvarden per livsmedels-id
 const classCache = new Map();     // cache för /klassificeringar per livsmedels-id
@@ -178,42 +177,37 @@ function unlockTypingSoon(delay = 450){
 }
 
 const clearBtn = document.getElementById("clearSearch");
+
+// 1) Vårt eget kryss (knapp)
 clearBtn?.addEventListener("click", (e) => {
   e.preventDefault();
-  if (!searchInput.value) return;  // inget att rensa
+  e.stopPropagation();
 
-  // Lås headern (som vid skrivning) så den inte hoppar
-  headerLock = true;
-  typingLock = true;
-
-  // Rensa fältet snabbt, håll fokus så tangentbordet stannar uppe
+  // rensa bara inputen
+  clearTimeout(inputDebounce);       // stoppa ev. pågående sökdebounce
   searchInput.value = "";
   clearBtn.style.visibility = "hidden";
-  searchInput.focus();
 
-  // Kör tom sökning och justera vy utan fönster-scroll
-  requestAnimationFrame(() => {
-    clearTimeout(inputDebounce);
-    doSearch("");
-
-    if (isMobileLandscape()) {
-      requestAnimationFrame(() => {
-        searchInput.scrollIntoView({ block: "center", behavior: "auto" });
-      });
-    } else {
-      scrollResultsTopNoWindow();
-    }
-
-    // Släpp låset strax efter att layout/render landat
-    unlockTypingSoon(450);
-  });
+  // behåll fokus utan att skrolla/”väcka” headern
+  searchInput.focus({ preventScroll: true });
 });
 
+// 2) Native kryss i <input type="search"> (iOS/Chrome)
+// Det här eventet triggas när man klickar på det inbyggda krysset.
+searchInput.addEventListener("search", (e) => {
+  if (searchInput.value === "") {
+    clearTimeout(inputDebounce);
+    clearBtn?.style && (clearBtn.style.visibility = "hidden");
+    // inget doSearch här – vi rör inte listan eller scroll
+    searchInput.focus({ preventScroll: true });
+  }
+});
 
 // (valfritt) Stäng även på ESC
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") setDrawerOpen(false);
 });
+
 // Referenser för desktop-kolumnen
 const selectedFoodsListEl = document.getElementById("selectedFoodsList");
 const summaryEl = document.getElementById("summary");
@@ -231,12 +225,6 @@ function applyHeaderVisibility() {
   const header = document.querySelector(".header-top");
   if (!header || !isMobileAny()) {
     header?.classList.remove("header-hidden");
-    return;
-  }
-
-  if (forceHeaderHidden) {
-    header.classList.add("header-hidden");
-    document.documentElement.classList.add("hdr-hidden");
     return;
   }
 
@@ -616,23 +604,16 @@ function doSearch(rawTerm) {
   currentSearchVersion++;
 
   if (!lastSearchTerm) {
-    renderInit(filteredData, currentSearchVersion, currentAbortController.signal);
-    requestAnimationFrame(() => {
-  if (!headerLock) {
-    scrollToResultsTopWithOffset({ instant: false });
-  } else if (isMobileLandscape()) {
+    renderInit(foodData, currentSearchVersion, currentAbortController.signal);
+requestAnimationFrame(() => {
+  if (isMobileLandscape()) {
     scrollToResultsTopWithOffset({ instant: true });
     searchInput.scrollIntoView({ block: "center", behavior: "auto" });
+  } else {
+    scrollToResultsTopWithOffset({ instant: false });
   }
 });
 
-    if (!headerLock) {
-      // Porträtt / inget tangentbord: normal smooth offset
-      scrollToResultsTopWithOffset({ instant: false });
-    } else if (isMobileLandscape()) {
-      // Liggande + fokus: håll fältet kvar i vyn
-      searchInput.scrollIntoView({ block: "center", behavior: "auto" });
-    }
     return;
   }
 
@@ -647,17 +628,15 @@ function doSearch(rawTerm) {
 
   renderInit(filteredData, currentSearchVersion, currentAbortController.signal);
 
-  if (!headerLock) {
-    // Porträtt / inget tangentbord
-    scrollToResultsTopWithOffset({ instant: false });
-  } else if (isMobileLandscape()) {
-    // Liggande + fokus: hoppa direkt till första kortet men utan att “väcka” headern
+requestAnimationFrame(() => {
+  if (isMobileLandscape()) {
     scrollToResultsTopWithOffset({ instant: true });
-    // och håll input i centrum av den lilla synliga remsan
-    requestAnimationFrame(() => {
-      searchInput.scrollIntoView({ block: "center", behavior: "auto" });
-    });
+    searchInput.scrollIntoView({ block: "center", behavior: "auto" });
+  } else {
+    scrollToResultsTopWithOffset({ instant: false });
   }
+});
+  keepSearchInView();
 }
 
 // Init: visa/dölj kryss
@@ -687,27 +666,21 @@ searchInput.addEventListener("keydown", function (event) {
 });
 
 searchInput.addEventListener("focus", () => {
-  headerLock = true;
-
+  headerLock = true; // håller headern synlig via isHeaderLocked()
+  // visa headern direkt
+  document.querySelector(".header-top")?.classList.remove("header-hidden");
+  document.documentElement.classList.remove("hdr-hidden");
+  // se till att fältet syns i landskap
   if (isMobileLandscape()) {
-    // Liggande: håll headern TVÅNGS-DOLD medan man skriver
-    forceHeaderHidden = true;
-    document.querySelector(".header-top")?.classList.add("header-hidden");
-    document.documentElement.classList.add("hdr-hidden");
-    // se till att fältet syns över tangentbordet
-    setTimeout(() => searchInput.scrollIntoView({ block: "center", behavior: "auto" }), 0);
-  } else {
-    // Porträtt: visa headern när man fokuserar fältet
-    forceHeaderHidden = false;
-    document.querySelector(".header-top")?.classList.remove("header-hidden");
-    document.documentElement.classList.remove("hdr-hidden");
+    setTimeout(() => {
+      searchInput.scrollIntoView({ block: "center", behavior: "auto" });
+    }, 0);
   }
 });
 
 searchInput.addEventListener("blur", () => {
   headerLock = false;
-  forceHeaderHidden = false;     // släpp tvångslåset
-  requestAnimationFrame(applyHeaderVisibility);
+  requestAnimationFrame(applyHeaderVisibility); // återgå till auto-hide
 });
 
 function buildFilterPredicate(filterType) {
