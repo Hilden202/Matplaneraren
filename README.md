@@ -77,6 +77,3 @@ Projektet är också en del av mitt större samlingsnav **Hilden Media – Tekni
 
 Utvecklat av **Patrik Hildenborg**  
 🔗 https://hildenmedia.se  
-🔗 CV: https://cv.hildenmedia.se
-
-> Teknik med själ – inte bara kod, utan något som faktiskt känns.
